@@ -14,22 +14,7 @@ if(args === null) return;
 class Chromecaster {
     constructor() {
         process.on('SIGINT', this.destructor.bind(this));
-        this.enc = new lame.Encoder({
-            channels: 2,
-            bitDepth: 16,
-            sampleRate: args.samplerate,
-
-            bitRate: args.bitrate,
-            outSampleRate: args.samplerate,
-            mode: lame.STEREO
-        });
-        this.audioInput = new AudioInput({ samplerate: args.samplerate });
-        this.webcast = new Webcast({ port: args.port });
-        this.chromecastDiscover = new ChromecastDiscover();
         this.exitCode = 0;
-
-        this.audioInput.on('data', this.enc.write.bind(this.enc));
-        this.enc.on('data', this.webcast.write.bind(this.webcast));
 
         if(args.list) {
             this.list(this.destructor.bind(this));
@@ -46,31 +31,40 @@ class Chromecaster {
     }
 
     list(done) {
+        this.createObjectsForListing();
         let i = 0;
-        console.log("Searching Chromcasts...");
+        console.log("Searching Chromecasts...");
         this.chromecastDiscover.start();
         this.chromecastDiscover.on('deviceUp', function(name) {
             console.log("  %d. %s", i++, name);
         });
         setTimeout(() => {
             this.chromecastDiscover.stop();
+            if(i === 0) console.log("No device found");
             done();
         }, args.searchDuration * 1000);
     }
 
     castToTheFirstUp() {
+        let found = false;
+        this.createObjectsForListing();
         console.log("Searching for a Chromecast...");
         this.chromecastDiscover.on('deviceUp', (name) => {
+            found = true;
             this.chromecastDiscover.stop();
             this.connect(name);
         });
         this.chromecastDiscover.start();
         setTimeout(() => {
-            this.destructor();
+            if(!found) {
+                this.destructor();
+                console.log("No device found");
+            }
         }, args.searchDuration * 1000);
     }
 
     castToTheDevice(name) {
+        this.createObjectsForListing();
         this.chromecastDiscover.on('deviceUp', (named) => {
             if(name.toLowerCase() === named.toLowerCase()) {
                 this.chromecastDiscover.stop();
@@ -80,7 +74,28 @@ class Chromecaster {
         this.chromecastDiscover.start();
     }
 
+    createObjectsForConnexion() {
+        this.enc = new lame.Encoder({
+            channels: 2,
+            bitDepth: 16,
+            sampleRate: args.samplerate,
+
+            bitRate: args.bitrate,
+            outSampleRate: args.samplerate,
+            mode: lame.STEREO
+        });
+        this.audioInput = new AudioInput({ samplerate: args.samplerate });
+        this.webcast = new Webcast({ port: args.port });
+        this.audioInput.on('data', this.enc.write.bind(this.enc));
+        this.enc.on('data', this.webcast.write.bind(this.webcast));
+    }
+
+    createObjectsForListing() {
+        this.chromecastDiscover = new ChromecastDiscover();
+    }
+
     connect(name) {
+        this.createObjectsForConnexion();
         console.log("Trying to cast to %s", name);
         this.client = new Client();
         this.client.on('error', (err) => {
@@ -123,9 +138,9 @@ class Chromecaster {
     }
 
     destructor() {
-        this.audioInput.close();
-        this.webcast.stop();
-        this.chromecastDiscover.stop();
+        if(this.audioInput) this.audioInput.close();
+        if(this.webcast) this.webcast.stop();
+        if(this.chromecastDiscover) this.chromecastDiscover.stop();
         if(this.client) this.client.close();
         process.exit(this.exitCode);
     }
