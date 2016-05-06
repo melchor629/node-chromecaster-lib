@@ -25,7 +25,7 @@ public:
         this->userData = userData;
     }
 
-    void open();
+    int open();
     void close();
     bool isOpen();
 

@@ -35,8 +35,8 @@ void AudioInput::selfInit() {
     self->open = false;
 }
 
-void AudioInput::open() {
-    if(self->open) return;
+int AudioInput::open() {
+    if(self->open) return 1;
 
     double samplesPerFrame = double(options.sampleRate) * double(options.frameDuration) / 1000.0 * double(options.channels);
     AudioQueueNewInput(&self->format, input_callback, this, NULL, kCFRunLoopCommonModes, 0, &self->inQueue);
@@ -47,6 +47,7 @@ void AudioInput::open() {
 
     AudioQueueStart(self->inQueue, NULL);
     self->open = true;
+    return 0;
 }
 
 bool AudioInput::isOpen() {

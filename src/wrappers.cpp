@@ -102,20 +102,32 @@ namespace demo {
 
                 if(!sampleRate.IsEmpty()) {
                     Local<Value> v;
-                    if(sampleRate.ToLocal(&v) && v->IsNumber())
+                    if(sampleRate.ToLocal(&v) && v->IsNumber()) {
                         opt.sampleRate = v->ToNumber()->ToUint32()->Value();
+                        if(opt.sampleRate != 44100 && opt.sampleRate != 48000
+                            && opt.sampleRate != 88200 && opt.sampleRate != 96000) {
+                                opt.sampleRate = 44100;
+                            }
+                    }
                 }
 
                 if(!bps.IsEmpty()) {
                     Local<Value> v;
-                    if(bps.ToLocal(&v) && v->IsNumber())
+                    if(bps.ToLocal(&v) && v->IsNumber()) {
                         opt.bitsPerSample = v->ToNumber()->ToUint32()->Value();
+                        if(opt.bitsPerSample != 16 && opt.bitsPerSample != 24 && opt.bitsPerSample != 32 && opt.bitsPerSample != 8) {
+                            opt.bitsPerSample = 16;
+                        }
+                    }
                 }
 
                 if(!ch.IsEmpty()) {
                     Local<Value> v;
                     if(ch.ToLocal(&v) && v->IsNumber()) {
                         opt.channels = v->ToNumber()->ToUint32()->Value();
+                        if(opt.channels > 2 || opt.channels == 0) {
+                            opt.channels = 2;
+                        }
                     }
                 }
 
@@ -177,7 +189,8 @@ namespace demo {
         AudioInputWrapper* obj = Nan::ObjectWrap::Unwrap<AudioInputWrapper>(info.Holder());
         uv_async_init(uv_default_loop(), &obj->message_async, &AudioInputWrapper::EmitMessage);
         obj->ai->setInputCallback(AudioInputWrapper::cbk, obj);
-        obj->ai->open();
+        Local<Number> number = Nan::New(obj->ai->open());
+        info.GetReturnValue().Set(number);
     }
 
     NAN_METHOD(AudioInputWrapper::isOpen) {
