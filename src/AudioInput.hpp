@@ -16,6 +16,8 @@ public:
         const char* devName;
     };
 
+    static const char* errorCodeToString(int);
+
     AudioInput(const Options &opt) : options(opt) {
         selfInit();
     }

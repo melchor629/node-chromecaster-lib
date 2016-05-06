@@ -37,9 +37,10 @@ namespace demo {
             static NAN_METHOD(open);
             static NAN_METHOD(close);
             static NAN_METHOD(isOpen);
+            static NAN_METHOD(ErrorToString);
             static void EmitMessage(uv_async_t *w);
             static void Destructor(void*);
-            static v8::Persistent<Function> constructor;
+            static Nan::Persistent<Function> constructor;
             static std::vector<AudioInputWrapper*> instances;
             AudioInput* ai;
             uv_async_t message_async;
@@ -68,8 +69,6 @@ namespace demo {
     }
 
     NAN_MODULE_INIT(AudioInputWrapper::Init) {
-        Isolate* isolate = target->GetIsolate();
-
         // Prepare constructor template
         Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
         tpl->SetClassName(Nan::New("AudioInput").ToLocalChecked());
@@ -79,13 +78,14 @@ namespace demo {
         Nan::SetPrototypeMethod(tpl, "open", open);
         Nan::SetPrototypeMethod(tpl, "close", close);
         Nan::SetPrototypeMethod(tpl, "isOpen", isOpen);
-        constructor.Reset(isolate, Nan::GetFunction(tpl).ToLocalChecked());
+        constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
         Nan::Set(target, Nan::New("AudioInput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 
-        node::AtExit(&AudioInputWrapper::Destructor, isolate);
+        auto audioInputErrorMethod = Nan::New<FunctionTemplate>(ErrorToString);
+        Nan::Set(target, Nan::New("AudioInputError").ToLocalChecked(), Nan::GetFunction(audioInputErrorMethod).ToLocalChecked());
     }
 
-    v8::Persistent<Function> AudioInputWrapper::constructor;
+    Nan::Persistent<Function> AudioInputWrapper::constructor;
     std::vector<AudioInputWrapper*> AudioInputWrapper::instances;
     NAN_METHOD(AudioInputWrapper::New) {
         if (info.IsConstructCall()) {
@@ -205,8 +205,6 @@ namespace demo {
     }
 
     void AudioInputWrapper::EmitMessage(uv_async_t *w) {
-        Isolate* is = Isolate::GetCurrent();
-        v8::HandleScope handle_scope(is);
         AudioInputWrapper *input = static_cast<AudioInputWrapper*>(w->data);
 
         if(not input->ai->isOpen()) return;
@@ -215,12 +213,10 @@ namespace demo {
         while (!input->message_queue.empty()) {
             Message* message = input->message_queue.front();
             v8::Local<v8::Value> args[2];
-            args[0] = String::NewFromUtf8(is, "data");
+            args[0] = Nan::New("data").ToLocalChecked();
 
             // create the node buffer for audio data
-            Local<Object> a;
-            (void) node::Buffer::New(is, message->size).ToLocal(&a);
-            memcpy(node::Buffer::Data(a), message->pcm, message->size);
+            Local<Object> a = Nan::CopyBuffer((const char*) message->pcm, message->size).ToLocalChecked();
             args[1] = a;
 
             Nan::MakeCallback(input->handle(), "emit", 2, args);
@@ -228,6 +224,16 @@ namespace demo {
             delete message;
         }
         uv_mutex_unlock(&input->message_mutex);
+    }
+
+    NAN_METHOD(AudioInputWrapper::ErrorToString) {
+        int errorCode = info[0]->ToNumber()->ToUint32()->Value();
+        const char* str = AudioInput::errorCodeToString(errorCode);
+        if(str != nullptr) {
+            info.GetReturnValue().Set(Nan::New(str).ToLocalChecked());
+        } else {
+            info.GetReturnValue().Set(Nan::Null());
+        }
     }
 
 }

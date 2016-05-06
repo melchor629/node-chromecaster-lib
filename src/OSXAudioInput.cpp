@@ -38,14 +38,31 @@ void AudioInput::selfInit() {
 int AudioInput::open() {
     if(self->open) return 1;
 
+    OSStatus status;
     double samplesPerFrame = double(options.sampleRate) * double(options.frameDuration) / 1000.0 * double(options.channels);
-    AudioQueueNewInput(&self->format, input_callback, this, NULL, kCFRunLoopCommonModes, 0, &self->inQueue);
+    status = AudioQueueNewInput(&self->format, input_callback, this, NULL, kCFRunLoopCommonModes, 0, &self->inQueue);
+    if(status == 0) return status;
+
     for(int i = 0; i < NUM_OF_BUFFERS; i++) {
-        AudioQueueAllocateBuffer(self->inQueue, samplesPerFrame, &self->inBuffer[i]);
-        AudioQueueEnqueueBuffer(self->inQueue, self->inBuffer[i], 0, NULL);
+        status = AudioQueueAllocateBuffer(self->inQueue, samplesPerFrame, &self->inBuffer[i]);
+        if(status != 0) {
+            AudioQueueDispose(self->inQueue, true);
+            return status;
+        }
+
+        status = AudioQueueEnqueueBuffer(self->inQueue, self->inBuffer[i], 0, NULL);
+        if(status != 0) {
+            AudioQueueDispose(self->inQueue, true);
+            return status;
+        }
     }
 
-    AudioQueueStart(self->inQueue, NULL);
+    status = AudioQueueStart(self->inQueue, NULL);
+    if(status != 0) {
+        AudioQueueDispose(self->inQueue, true);
+        return status;
+    }
+
     self->open = true;
     return 0;
 }
@@ -75,4 +92,52 @@ static void input_callback(
         ai->callCallback(num_packets, buffer->mAudioData);
     }
     AudioQueueEnqueueBuffer(queue, buffer, 0, NULL);
+}
+
+const char* AudioInput::errorCodeToString(int errorCode) {
+    //See https://developer.apple.com/library/ios/documentation/MusicAudio/Reference/AudioQueueReference/#//apple_ref/c/econst/kAudioQueueErr_BufferEmpty
+    switch(errorCode) {
+        case kAudioQueueErr_InvalidBuffer:
+            return "InvalidBuffer";
+        case kAudioQueueErr_BufferEmpty:
+            return "BufferEmpty";
+        case kAudioQueueErr_DisposalPending:
+            return "DisposalPending";
+        case kAudioQueueErr_InvalidProperty:
+            return "InvalidProperty";
+        case kAudioQueueErr_InvalidPropertySize:
+            return "InvalidPropertySize";
+        case kAudioQueueErr_InvalidParameter:
+            return "InvalidParameter";
+        case kAudioQueueErr_CannotStart:
+            return "CannotStart";
+        case kAudioQueueErr_InvalidDevice:
+            return "InvalidDevice";
+        case kAudioQueueErr_BufferInQueue:
+            return "BufferInQueue";
+        case kAudioQueueErr_InvalidRunState:
+            return "InvalidRunState";
+        case kAudioQueueErr_InvalidQueueType:
+            return "InvalidQueueType";
+        case kAudioQueueErr_Permissions:
+            return "Permissions";
+        case kAudioQueueErr_InvalidPropertyValue:
+            return "InvalidPropertyValue";
+        case kAudioQueueErr_PrimeTimedOut:
+            return "PrimeTimedOut";
+        case kAudioQueueErr_CodecNotFound:
+            return "CodecNotFound";
+        case kAudioQueueErr_InvalidCodecAccess:
+            return "InvalidCodecAccess";
+        case kAudioQueueErr_QueueInvalidated:
+            return "QueueInvalidated";
+        case kAudioQueueErr_RecordUnderrun:
+            return "RecordUnderrun";
+        case kAudioQueueErr_EnqueueDuringReset:
+            return "EnqueueDuringReset";
+        case kAudioQueueErr_InvalidOfflineMode:
+            return "InvalidOfflineMode";
+        default:
+            return nullptr;
+    }
 }
