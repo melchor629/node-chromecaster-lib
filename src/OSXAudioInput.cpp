@@ -41,7 +41,7 @@ int AudioInput::open() {
     OSStatus status;
     double samplesPerFrame = double(options.sampleRate) * double(options.frameDuration) / 1000.0 * double(options.channels);
     status = AudioQueueNewInput(&self->format, input_callback, this, NULL, kCFRunLoopCommonModes, 0, &self->inQueue);
-    if(status == 0) return status;
+    if(status != 0) return status;
 
     for(int i = 0; i < NUM_OF_BUFFERS; i++) {
         status = AudioQueueAllocateBuffer(self->inQueue, samplesPerFrame, &self->inBuffer[i]);

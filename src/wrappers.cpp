@@ -206,6 +206,7 @@ namespace demo {
 
     void AudioInputWrapper::EmitMessage(uv_async_t *w) {
         AudioInputWrapper *input = static_cast<AudioInputWrapper*>(w->data);
+        Nan::HandleScope scope;
 
         if(not input->ai->isOpen()) return;
 
@@ -216,8 +217,7 @@ namespace demo {
             args[0] = Nan::New("data").ToLocalChecked();
 
             // create the node buffer for audio data
-            Local<Object> a = Nan::CopyBuffer((const char*) message->pcm, message->size).ToLocalChecked();
-            args[1] = a;
+            args[1] = Nan::CopyBuffer((const char*) message->pcm, message->size).ToLocalChecked();
 
             Nan::MakeCallback(input->handle(), "emit", 2, args);
             input->message_queue.pop();
