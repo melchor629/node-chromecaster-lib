@@ -21,6 +21,7 @@ public:
     AudioInput(const Options &opt) : options(opt) {
         selfInit();
     }
+    ~AudioInput();
 
     void setInputCallback(AudioInputCallback cbk, void* userData = nullptr) {
         this->cbk = cbk;
@@ -29,7 +30,9 @@ public:
 
     int open();
     void close();
+    void pause();
     bool isOpen();
+    bool isPaused();
 
     Options options;
 

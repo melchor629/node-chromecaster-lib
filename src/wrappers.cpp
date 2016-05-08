@@ -35,8 +35,10 @@ namespace demo {
             static void cbk(uint32_t size, const void* pcm, void* userData);
             static NAN_METHOD(New);
             static NAN_METHOD(open);
+            static NAN_METHOD(pause);
             static NAN_METHOD(close);
             static NAN_METHOD(isOpen);
+            static NAN_METHOD(isPaused);
             static NAN_METHOD(ErrorToString);
             static void EmitMessage(uv_async_t *w);
             static void Destructor(void*);
@@ -77,7 +79,9 @@ namespace demo {
         // Prototype
         Nan::SetPrototypeMethod(tpl, "open", open);
         Nan::SetPrototypeMethod(tpl, "close", close);
+        Nan::SetPrototypeMethod(tpl, "pause", pause);
         Nan::SetPrototypeMethod(tpl, "isOpen", isOpen);
+        Nan::SetPrototypeMethod(tpl, "isPaused", isPaused);
         constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
         Nan::Set(target, Nan::New("AudioInput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 
@@ -178,7 +182,7 @@ namespace demo {
         AudioInputWrapper* obj = (AudioInputWrapper*) userData;
         Message* m = new Message();
         m->pcm = pcm;
-        m->size = size * 4;
+        m->size = size;
         uv_mutex_lock(&obj->message_mutex);
         obj->message_queue.push(m);
         uv_mutex_unlock(&obj->message_mutex);
@@ -202,6 +206,16 @@ namespace demo {
         AudioInputWrapper* obj = Nan::ObjectWrap::Unwrap<AudioInputWrapper>(info.Holder());
         obj->ai->close();
         uv_mutex_destroy(&obj->message_mutex);
+    }
+
+    NAN_METHOD(AudioInputWrapper::pause) {
+        AudioInputWrapper* obj = Nan::ObjectWrap::Unwrap<AudioInputWrapper>(info.Holder());
+        obj->ai->pause();
+    }
+
+    NAN_METHOD(AudioInputWrapper::isPaused) {
+        AudioInputWrapper* obj = Nan::ObjectWrap::Unwrap<AudioInputWrapper>(info.Holder());
+        info.GetReturnValue().Set(Nan::New(obj->ai->isPaused()));
     }
 
     void AudioInputWrapper::EmitMessage(uv_async_t *w) {

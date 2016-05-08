@@ -19,6 +19,7 @@ struct private_data {
     AudioQueueRef inQueue;
     AudioQueueBufferRef inBuffer[NUM_OF_BUFFERS];
     bool open = false;
+    bool paused = false;
 };
 
 void AudioInput::selfInit() {
@@ -67,8 +68,22 @@ int AudioInput::open() {
     return 0;
 }
 
+void AudioInput::pause() {
+    if(self->paused) {
+        AudioQueueStart(self->inQueue, NULL);
+        self->paused = false;
+    } else {
+        AudioQueuePause(self->inQueue);
+        self->paused = true;
+    }
+}
+
 bool AudioInput::isOpen() {
     return self->open;
+}
+
+bool AudioInput::isPaused() {
+    return !self->open || self->paused;
 }
 
 void AudioInput::close() {
@@ -89,7 +104,7 @@ static void input_callback(
     AudioInput* ai = (AudioInput*) custom_data;
 
     if(ai->self->open) {
-        ai->callCallback(num_packets, buffer->mAudioData);
+        ai->callCallback(num_packets * 4, buffer->mAudioData);
     }
     AudioQueueEnqueueBuffer(queue, buffer, 0, NULL);
 }

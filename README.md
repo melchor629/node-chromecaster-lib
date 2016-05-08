@@ -8,10 +8,12 @@ This version is in (_really_) alpha, so any help is welcome.
 
 Installation
 ----------------
-This library currently only works on OS X, and in a (_nearly, I expect_) future will support Linux.
+This library currently only works on OS X and Linux.
 ```
 $ npm install chromecaster-lib
 ```
+
+**Linux Users**: You must install *libpulse-dev* and *libavahi-compat-libdnssd-dev* packages before installing this one.
 
 Example
 ------------
@@ -77,8 +79,14 @@ Opens the Input Audio Stream. If the return value is different from 0, then an e
 **close()**
 Closes the Input Stream, in case it was opened.
 
+**pause()**
+(Un)Pauses the Input Stream.
+
 **Boolean isOpen()**
 Returns `true` if the stream is open, `false` otherwise.
+
+**Boolean isPaused()**
+Returns `true` if the stream is open and paused, or is closed.
 
 **event 'data'**
 Every frame is received, will be sent via this event. Event has only one argument: the interleaved audio buffer.
