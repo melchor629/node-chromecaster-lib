@@ -73,8 +73,10 @@ Creates the object passing some options. `options` object can contain the follow
 
 NOTE: Invalid values in the above options, will derive to default value.
 
+NOTE: For `deviceName`, try with values from `AudioInput.getDevices()`.
+
 **Number open()**
-Opens the Input Audio Stream. If the return value is different from 0, then an error has occurred. In this case, see `AudioInput.AudioInputErrors`.
+Opens the Input Audio Stream. If the return value is different from 0, then an error has occurred. In this case, see `AudioInput.Error`.
 
 **close()**
 Closes the Input Stream, in case it was opened.
@@ -90,6 +92,13 @@ Returns `true` if the stream is open and paused, or is closed.
 
 **event 'data'**
 Every frame is received, will be sent via this event. Event has only one argument: the interleaved audio buffer.
+
+## String AudioInput.Error(Number)
+Converts the error returned in `Number AudioInput.open()` into a string.
+
+## [String] AudioInput.getDevices()
+Returns the devices available in the system. Useful to change the input device
+when creating an `AudioInput`.
 
 ### Webcast
 inherits from stream.Writable

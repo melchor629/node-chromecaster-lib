@@ -40,6 +40,7 @@ namespace demo {
             static NAN_METHOD(isOpen);
             static NAN_METHOD(isPaused);
             static NAN_METHOD(ErrorToString);
+            static NAN_METHOD(GetDevices);
             static void EmitMessage(uv_async_t *w);
             static void Destructor(void*);
             static Nan::Persistent<Function> constructor;
@@ -64,9 +65,9 @@ namespace demo {
     }
 
     AudioInputWrapper::~AudioInputWrapper() {
-        fflush(stdout);
         if(ai->isOpen())
             ai->close();
+        uv_mutex_destroy(&message_mutex);
         delete ai;
     }
 
@@ -87,6 +88,11 @@ namespace demo {
 
         auto audioInputErrorMethod = Nan::New<FunctionTemplate>(ErrorToString);
         Nan::Set(target, Nan::New("AudioInputError").ToLocalChecked(), Nan::GetFunction(audioInputErrorMethod).ToLocalChecked());
+        auto getDevicesMethod = Nan::New<FunctionTemplate>(GetDevices);
+        Nan::Set(target, Nan::New("GetDevices").ToLocalChecked(), Nan::GetFunction(getDevicesMethod).ToLocalChecked());
+
+        AudioInput::staticInit();
+        node::AtExit(AudioInputWrapper::Destructor, nullptr);
     }
 
     Nan::Persistent<Function> AudioInputWrapper::constructor;
@@ -174,8 +180,13 @@ namespace demo {
         (void)nothing;
 
         for(auto it = AudioInputWrapper::instances.begin(); it != AudioInputWrapper::instances.end(); it++) {
-            delete *it;
+            if((*it)->ai->isOpen())
+                (*it)->ai->close();
+            uv_mutex_destroy(&(*it)->message_mutex);
+            delete (*it)->ai;
         }
+
+        AudioInput::staticDeinit();
     }
 
     void AudioInputWrapper::cbk(uint32_t size, const void* pcm, void* userData) {
@@ -205,7 +216,8 @@ namespace demo {
     NAN_METHOD(AudioInputWrapper::close) {
         AudioInputWrapper* obj = Nan::ObjectWrap::Unwrap<AudioInputWrapper>(info.Holder());
         obj->ai->close();
-        uv_mutex_destroy(&obj->message_mutex);
+        uv_close((uv_handle_t*) &obj->message_async, nullptr);
+        uv_unref((uv_handle_t*) &obj->message_async);
     }
 
     NAN_METHOD(AudioInputWrapper::pause) {
@@ -248,6 +260,19 @@ namespace demo {
         } else {
             info.GetReturnValue().Set(Nan::Null());
         }
+    }
+
+    NAN_METHOD(AudioInputWrapper::GetDevices) {
+        std::vector<std::string> list;
+        Local<v8::Array> array = Nan::New<v8::Array>();
+
+        AudioInput::getInputDevices(list);
+        uint32_t pos = 0;
+        for(auto it = list.begin(); it != list.end(); it++) {
+            Nan::Set(array, pos++, Nan::New<v8::String>(*it).ToLocalChecked());
+        }
+
+        info.GetReturnValue().Set(array);
     }
 
 }

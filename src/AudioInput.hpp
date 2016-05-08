@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <functional>
+#include <vector>
+#include <string>
 
 class AudioInput {
 public:
@@ -17,6 +19,9 @@ public:
     };
 
     static const char* errorCodeToString(int);
+    static void getInputDevices(std::vector<std::string> &);
+    static void staticInit();
+    static void staticDeinit();
 
     AudioInput(const Options &opt) : options(opt) {
         selfInit();

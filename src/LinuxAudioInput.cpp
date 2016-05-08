@@ -5,6 +5,7 @@
 #include <pulse/stream.h>
 #include <pulse/sample.h>
 #include <pulse/error.h>
+#include <pulse/introspect.h>
 #include <thread>
 #include <cstring>
 
@@ -14,16 +15,16 @@ struct private_data {
     bool open = false;
     bool paused = false;
 
-    pa_threaded_mainloop* mloop;
     pa_proplist* list;
-    pa_context* ctx;
     pa_stream* stream;
-
-    pa_context_state contextState = PA_CONTEXT_UNCONNECTED;
 
     void* buffers[NUM_OF_BUFFERS];
     int currentBuffer = 0;
 };
+
+static volatile pa_context_state contextState = PA_CONTEXT_UNCONNECTED;
+static pa_threaded_mainloop* mloop;
+static pa_context* ctx;
 
 static void paStreamNotify(pa_stream *p, void *userdata);
 static void paStreamRequest(pa_stream *p, size_t bytes, void* userdata);
@@ -43,13 +44,7 @@ pa_sample_format_t bpsToFormat(uint32_t bps) {
 void AudioInput::selfInit() {
     self = new private_data;
 
-    self->mloop = pa_threaded_mainloop_new();
-    pa_threaded_mainloop_start(self->mloop);
-    self->ctx = pa_context_new(pa_threaded_mainloop_get_api(self->mloop), "Chromecaster Library");
-    pa_context_connect(self->ctx, nullptr, PA_CONTEXT_NOFLAGS, nullptr);
-    pa_context_set_state_callback(self->ctx, paContextNotify, this);
-
-    while(self->contextState != PA_CONTEXT_READY && self->contextState != PA_CONTEXT_FAILED)
+    while(contextState != PA_CONTEXT_READY && contextState != PA_CONTEXT_FAILED)
         std::this_thread::yield();
 
     self->list = pa_proplist_new();
@@ -59,13 +54,14 @@ void AudioInput::selfInit() {
 
 int AudioInput::open() {
     if(self->open) return 0;
+    if(contextState == PA_CONTEXT_FAILED) return -1;
 
     pa_sample_spec spec = { bpsToFormat(options.bitsPerSample), options.sampleRate, options.channels };
     pa_channel_map map = { options.channels, { PA_CHANNEL_POSITION_FRONT_LEFT, PA_CHANNEL_POSITION_FRONT_RIGHT }};
-    self->stream = pa_stream_new_with_proplist(self->ctx, "AudioInputNative", &spec, &map, self->list);
+    self->stream = pa_stream_new_with_proplist(ctx, "AudioInputNative", &spec, &map, self->list);
 
     if(self->stream == nullptr) {
-        return pa_context_errno(self->ctx);
+        return pa_context_errno(ctx);
     }
 
     double samplesPerFrame = double(options.sampleRate) * double(options.frameDuration) / 1000.0 * double(options.channels);
@@ -73,7 +69,7 @@ int AudioInput::open() {
     int status = pa_stream_connect_record(self->stream, options.devName, &bufferAttr, PA_STREAM_ADJUST_LATENCY);
 
     if(status < 0) {
-        return pa_context_errno(self->ctx);
+        return pa_context_errno(ctx);
     }
 
     for(int i = 0; i < NUM_OF_BUFFERS; i++) {
@@ -117,10 +113,6 @@ AudioInput::~AudioInput() {
     this->close();
     pa_proplist_free(self->list);
     pa_stream_unref(self->stream);
-    pa_context_disconnect(self->ctx);
-    pa_context_unref(self->ctx);
-    pa_threaded_mainloop_stop(self->mloop);
-    pa_threaded_mainloop_free(self->mloop);
     delete self;
 }
 
@@ -130,7 +122,7 @@ static void paStreamRequest(pa_stream *p, size_t bytes, void* userdata) {
 
     const void* pcm;
     int status = pa_stream_peek(p, &pcm, &bytes);
-    if(pcm != nullptr && bytes != 0 && ai->self->isOpen) {
+    if(status == 0 && pcm != nullptr && bytes != 0 && ai->self->open) {
         memcpy(ai->self->buffers[ai->self->currentBuffer], pcm, bytes);
         ai->callCallback(bytes, ai->self->buffers[ai->self->currentBuffer]);
         pa_stream_drop(p);
@@ -139,14 +131,47 @@ static void paStreamRequest(pa_stream *p, size_t bytes, void* userdata) {
 }
 
 static void paStreamNotify(pa_stream *p, void *userdata) {
-    AudioInput* ai = (AudioInput*) userdata;
+
 }
 
 static void paContextNotify(pa_context *c, void *userdata) {
-    AudioInput* ai = (AudioInput*) userdata;
-    ai->self->contextState = pa_context_get_state(c);
+    contextState = pa_context_get_state(c);
+}
+
+void AudioInput::staticInit() {
+    mloop = pa_threaded_mainloop_new();
+    pa_threaded_mainloop_start(mloop);
+    ctx = pa_context_new(pa_threaded_mainloop_get_api(mloop), "Chromecaster Library");
+    pa_context_connect(ctx, nullptr, PA_CONTEXT_NOFLAGS, nullptr);
+    pa_context_set_state_callback(ctx, paContextNotify, nullptr);
+}
+
+void AudioInput::staticDeinit() {
+    pa_context_disconnect(ctx);
+    pa_context_unref(ctx);
+    pa_threaded_mainloop_stop(mloop);
+    pa_threaded_mainloop_free(mloop);
 }
 
 const char* AudioInput::errorCodeToString(int err) {
+    if(err == -1) return "PA_CONTEXT_FAILED";
     return pa_strerror(err);
+}
+
+static void inputdev(pa_context *c, const pa_source_info *i, int eol, void *userdata) {
+    std::vector<std::string>* list = (std::vector<std::string>*) userdata;
+
+    if(!eol) {
+        list->push_back(std::string(i->name));
+    }
+}
+
+void AudioInput::getInputDevices(std::vector<std::string> &list) {
+    while(contextState != PA_CONTEXT_READY && contextState != PA_CONTEXT_FAILED)
+        std::this_thread::yield();
+    if(contextState == PA_CONTEXT_FAILED) return;
+
+    pa_operation* op = pa_context_get_source_info_list(ctx, &inputdev, &list);
+    while(pa_operation_get_state(op) != PA_OPERATION_DONE) std::this_thread::yield();
+    pa_operation_unref(op);
 }

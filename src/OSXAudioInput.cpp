@@ -156,3 +156,15 @@ const char* AudioInput::errorCodeToString(int errorCode) {
             return nullptr;
     }
 }
+
+void AudioInput::getInputDevices(std::vector<std::string> &list) {
+
+}
+
+void AudioInput::staticInit() {
+
+}
+
+void AudioInput::staticDeinit() {
+
+}
