@@ -1,6 +1,8 @@
 #include "AudioInput.hpp"
 
 #include <AudioToolbox/AudioQueue.h>
+#include <AudioToolbox/AudioServices.h>
+#include <CoreAudio/AudioHardware.h>
 #include <CoreAudio/CoreAudioTypes.h>
 #include <CoreFoundation/CFRunLoop.h>
 
@@ -157,9 +159,82 @@ const char* AudioInput::errorCodeToString(int errorCode) {
     }
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnonnull"
+// http://stackoverflow.com/questions/4575408/audioobjectgetpropertydata-to-get-a-list-of-input-devices
 void AudioInput::getInputDevices(std::vector<std::string> &list) {
+    AudioObjectPropertyAddress propertyAddress = {
+        kAudioHardwarePropertyDevices,
+        kAudioObjectPropertyScopeGlobal,
+        kAudioObjectPropertyElementMaster
+    };
 
+    uint32_t dataSize = 0;
+    OSStatus status = AudioHardwareServiceGetPropertyDataSize(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &dataSize);
+    if(kAudioHardwareNoError != status) {
+        fprintf(stderr, "AudioObjectGetPropertyDataSize (kAudioHardwarePropertyDevices) failed: %i\n", status);
+        return;
+    }
+
+    uint32_t deviceCount = uint32_t(dataSize / sizeof(AudioDeviceID));
+    AudioDeviceID* devices = new AudioDeviceID[deviceCount];
+
+    status = AudioHardwareServiceGetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &dataSize, devices);
+    if(kAudioHardwareNoError != status) {
+        fprintf(stderr, "AudioObjectGetPropertyData (kAudioHardwarePropertyDevices) failed: %i\n", status);
+        delete[] devices;
+    }
+
+    propertyAddress.mScope = kAudioDevicePropertyScopeInput;
+    for(uint32_t i = 0; i < deviceCount; i++) {
+        CFStringRef deviceName = NULL;
+        dataSize = sizeof(deviceName);
+        propertyAddress.mSelector = kAudioDevicePropertyDeviceNameCFString;
+        status = AudioHardwareServiceGetPropertyData(devices[i], &propertyAddress, 0, NULL, &dataSize, &deviceName);
+        if(kAudioHardwareNoError != status) {
+            fprintf(stderr, "AudioObjectGetPropertyData (kAudioDevicePropertyDeviceNameCFString) failed: %i\n", status);
+            continue;
+        }
+
+        dataSize = 0;
+        propertyAddress.mSelector = kAudioDevicePropertyStreamConfiguration;
+        status = AudioHardwareServiceGetPropertyDataSize(devices[i], &propertyAddress, 0, NULL, &dataSize);
+        if(kAudioHardwareNoError != status) {
+            fprintf(stderr, "AudioObjectGetPropertyDataSize (kAudioDevicePropertyStreamConfiguration) failed: %i\n", status);
+            CFRelease(deviceName);
+            continue;
+        }
+
+        AudioBufferList *bufferList = (AudioBufferList *) malloc(dataSize);
+        status = AudioHardwareServiceGetPropertyData(devices[i], &propertyAddress, 0, NULL, &dataSize, bufferList);
+        if(kAudioHardwareNoError != status || 0 == bufferList->mNumberBuffers) {
+            if(kAudioHardwareNoError != status)
+                fprintf(stderr, "AudioObjectGetPropertyData (kAudioDevicePropertyStreamConfiguration) failed: %i\n", status);
+            free(bufferList);
+            CFRelease(deviceName);
+            continue;
+        }
+
+        const char* strDeviceName = CFStringGetCStringPtr(deviceName, kCFStringEncodingUTF8);
+        if(strDeviceName == NULL) {
+            char* mutableStrDeviceName = new char[CFStringGetLength(deviceName)];
+            if(!CFStringGetCString(deviceName, mutableStrDeviceName, CFStringGetLength(deviceName), kCFStringEncodingUTF8)) {
+                delete[] mutableStrDeviceName;
+                fprintf(stderr, "Cannot obtain const char* from CFString correctly\n");
+            }
+
+            list.push_back(std::string(mutableStrDeviceName));
+            delete[] mutableStrDeviceName;
+        } else {
+            list.push_back(std::string(strDeviceName));
+        }
+
+        CFRelease(deviceName);
+    }
+
+    delete[] devices;
 }
+#pragma clang diagnostic pop
 
 void AudioInput::staticInit() {
 
