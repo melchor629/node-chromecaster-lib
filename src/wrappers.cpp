@@ -68,6 +68,7 @@ namespace demo {
         if(ai->isOpen())
             ai->close();
         uv_mutex_destroy(&message_mutex);
+        delete[] ai->options.devName;
         delete ai;
     }
 
@@ -145,8 +146,9 @@ namespace demo {
                     Local<Value> v;
                     if(devName.ToLocal(&v) && v->IsString()) {
                         Local<String> str = v->ToString();
-                        opt.devName = new char[str->Utf8Length()];
-                        Nan::DecodeWrite((char*) opt.devName, str->Utf8Length(), str);
+                        opt.devName = new char[str->Utf8Length() + 1];
+                        Nan::DecodeWrite((char*) opt.devName, str->Utf8Length() + 1, str);
+                        ((char*) opt.devName)[str->Utf8Length()] = '\0';
                     }
                 }
 

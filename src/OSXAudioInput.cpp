@@ -16,10 +16,14 @@ static void input_callback(
     UInt32 num_packets,
     const AudioStreamPacketDescription *packet_desc);
 
+static OSStatus setInputDevice(const char* name);
+static char* getDefaultInputDeviceName();
+
 struct private_data {
     AudioStreamBasicDescription format;
     AudioQueueRef inQueue;
     AudioQueueBufferRef inBuffer[NUM_OF_BUFFERS];
+    char* defaultDevice;
     bool open = false;
     bool paused = false;
 };
@@ -36,6 +40,7 @@ void AudioInput::selfInit() {
     self->format.mBytesPerPacket = self->format.mBytesPerFrame * self->format.mFramesPerPacket;
     self->format.mReserved = 0;
     self->open = false;
+    self->defaultDevice = getDefaultInputDeviceName();
 }
 
 int AudioInput::open() {
@@ -67,7 +72,9 @@ int AudioInput::open() {
     }
 
     self->open = true;
-    return 0;
+    if(options.devName)
+        return setInputDevice(options.devName);
+    else return 0;
 }
 
 void AudioInput::pause() {
@@ -92,7 +99,13 @@ void AudioInput::close() {
     if(self->open) {
         self->open = false;
         AudioQueueDispose(self->inQueue, true);
+        setInputDevice(self->defaultDevice);
     }
+}
+
+AudioInput::~AudioInput() {
+    close();
+    delete[] self->defaultDevice;
 }
 
 static void input_callback(
@@ -114,55 +127,36 @@ static void input_callback(
 const char* AudioInput::errorCodeToString(int errorCode) {
     //See https://developer.apple.com/library/ios/documentation/MusicAudio/Reference/AudioQueueReference/#//apple_ref/c/econst/kAudioQueueErr_BufferEmpty
     switch(errorCode) {
-        case kAudioQueueErr_InvalidBuffer:
-            return "InvalidBuffer";
-        case kAudioQueueErr_BufferEmpty:
-            return "BufferEmpty";
-        case kAudioQueueErr_DisposalPending:
-            return "DisposalPending";
-        case kAudioQueueErr_InvalidProperty:
-            return "InvalidProperty";
-        case kAudioQueueErr_InvalidPropertySize:
-            return "InvalidPropertySize";
-        case kAudioQueueErr_InvalidParameter:
-            return "InvalidParameter";
-        case kAudioQueueErr_CannotStart:
-            return "CannotStart";
-        case kAudioQueueErr_InvalidDevice:
-            return "InvalidDevice";
-        case kAudioQueueErr_BufferInQueue:
-            return "BufferInQueue";
-        case kAudioQueueErr_InvalidRunState:
-            return "InvalidRunState";
-        case kAudioQueueErr_InvalidQueueType:
-            return "InvalidQueueType";
-        case kAudioQueueErr_Permissions:
-            return "Permissions";
-        case kAudioQueueErr_InvalidPropertyValue:
-            return "InvalidPropertyValue";
-        case kAudioQueueErr_PrimeTimedOut:
-            return "PrimeTimedOut";
-        case kAudioQueueErr_CodecNotFound:
-            return "CodecNotFound";
-        case kAudioQueueErr_InvalidCodecAccess:
-            return "InvalidCodecAccess";
-        case kAudioQueueErr_QueueInvalidated:
-            return "QueueInvalidated";
-        case kAudioQueueErr_RecordUnderrun:
-            return "RecordUnderrun";
-        case kAudioQueueErr_EnqueueDuringReset:
-            return "EnqueueDuringReset";
-        case kAudioQueueErr_InvalidOfflineMode:
-            return "InvalidOfflineMode";
-        default:
-            return nullptr;
+        case 1: return "Stream was started yet";
+        case 2: return "Could not change input device";
+        case kAudioQueueErr_InvalidBuffer: return "InvalidBuffer";
+        case kAudioQueueErr_BufferEmpty: return "BufferEmpty";
+        case kAudioQueueErr_DisposalPending: return "DisposalPending";
+        case kAudioQueueErr_InvalidProperty: return "InvalidProperty";
+        case kAudioQueueErr_InvalidPropertySize: return "InvalidPropertySize";
+        case kAudioQueueErr_InvalidParameter: return "InvalidParameter";
+        case kAudioQueueErr_CannotStart: return "CannotStart";
+        case kAudioQueueErr_InvalidDevice: return "InvalidDevice";
+        case kAudioQueueErr_BufferInQueue: return "BufferInQueue";
+        case kAudioQueueErr_InvalidRunState: return "InvalidRunState";
+        case kAudioQueueErr_InvalidQueueType: return "InvalidQueueType";
+        case kAudioQueueErr_Permissions: return "Permissions";
+        case kAudioQueueErr_InvalidPropertyValue: return "InvalidPropertyValue";
+        case kAudioQueueErr_PrimeTimedOut: return "PrimeTimedOut";
+        case kAudioQueueErr_CodecNotFound: return "CodecNotFound";
+        case kAudioQueueErr_InvalidCodecAccess: return "InvalidCodecAccess";
+        case kAudioQueueErr_QueueInvalidated: return "QueueInvalidated";
+        case kAudioQueueErr_RecordUnderrun: return "RecordUnderrun";
+        case kAudioQueueErr_EnqueueDuringReset: return "EnqueueDuringReset";
+        case kAudioQueueErr_InvalidOfflineMode: return "InvalidOfflineMode";
+        default: return nullptr;
     }
 }
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnonnull"
 // http://stackoverflow.com/questions/4575408/audioobjectgetpropertydata-to-get-a-list-of-input-devices
-void AudioInput::getInputDevices(std::vector<std::string> &list) {
+static void getInputDevicesId(AudioDeviceID* &devices, uint32_t &count) {
     AudioObjectPropertyAddress propertyAddress = {
         kAudioHardwarePropertyDevices,
         kAudioObjectPropertyScopeGlobal,
@@ -173,22 +167,107 @@ void AudioInput::getInputDevices(std::vector<std::string> &list) {
     OSStatus status = AudioHardwareServiceGetPropertyDataSize(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &dataSize);
     if(kAudioHardwareNoError != status) {
         fprintf(stderr, "AudioObjectGetPropertyDataSize (kAudioHardwarePropertyDevices) failed: %i\n", status);
+        devices = nullptr;
+        count = 0;
         return;
     }
 
-    uint32_t deviceCount = uint32_t(dataSize / sizeof(AudioDeviceID));
-    AudioDeviceID* devices = new AudioDeviceID[deviceCount];
+    count = uint32_t(dataSize / sizeof(AudioDeviceID));
+    devices = new AudioDeviceID[count];
 
     status = AudioHardwareServiceGetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &dataSize, devices);
     if(kAudioHardwareNoError != status) {
         fprintf(stderr, "AudioObjectGetPropertyData (kAudioHardwarePropertyDevices) failed: %i\n", status);
         delete[] devices;
+        devices = nullptr;
+        count = 0;
+    }
+}
+
+static OSStatus setInputDevice(const char* name) {
+    AudioDeviceID* devices;
+    uint32_t deviceCount, dataSize;
+    OSStatus ret = 2;
+    AudioObjectPropertyAddress propertyAddress = {
+        kAudioHardwarePropertyDevices,
+        kAudioDevicePropertyScopeInput,
+        kAudioObjectPropertyElementMaster
+    };
+
+    getInputDevicesId(devices, deviceCount);
+    if(deviceCount == 0) return 2;
+
+    CFStringRef desiredDeviceName = CFStringCreateWithBytesNoCopy(
+        nullptr,
+        (uint8_t*) name,
+        strlen(name),
+        kCFStringEncodingUTF8,
+        false,
+        nullptr);
+
+    for(uint32_t i = 0; i < deviceCount; i++) {
+        CFStringRef deviceName = nullptr;
+        propertyAddress.mSelector = kAudioDevicePropertyDeviceNameCFString;
+        AudioHardwareServiceGetPropertyData(devices[i], &propertyAddress, 0, nullptr, &dataSize, &deviceName);
+
+        if(CFStringCompare(desiredDeviceName, deviceName, 0) == kCFCompareEqualTo) {
+            propertyAddress.mSelector = kAudioHardwarePropertyDefaultInputDevice;
+            propertyAddress.mScope = kAudioObjectPropertyScopeGlobal;
+            propertyAddress.mElement = kAudioObjectPropertyElementMaster;
+            AudioObjectSetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, nullptr, sizeof(AudioDeviceID), &devices[i]);
+            CFRelease(deviceName);
+            ret = 0;
+            break;
+        }
+
+        CFRelease(deviceName);
     }
 
+    delete[] devices;
+    CFRelease(desiredDeviceName);
+    return ret;
+}
+
+static char* getDefaultInputDeviceName() {
+    AudioObjectPropertyAddress propertyAddress;
+    propertyAddress.mSelector = kAudioHardwarePropertyDefaultInputDevice;
+    propertyAddress.mScope = kAudioObjectPropertyScopeGlobal;
+    propertyAddress.mElement = kAudioObjectPropertyElementMaster;
+    AudioDeviceID device = 0;
+    uint32_t size = sizeof(AudioDeviceID);
+    AudioObjectGetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, nullptr, &size, &device);
+
+    CFStringRef deviceName = nullptr;
+    propertyAddress.mSelector = kAudioDevicePropertyDeviceNameCFString;
     propertyAddress.mScope = kAudioDevicePropertyScopeInput;
+    size = sizeof(CFStringRef);
+    AudioHardwareServiceGetPropertyData(device, &propertyAddress, 0, nullptr, &size, &deviceName);
+
+    char* mutableStrDeviceName = new char[CFStringGetLength(deviceName)+1];
+    if(!CFStringGetCString(deviceName, mutableStrDeviceName, CFStringGetLength(deviceName)+1, kCFStringEncodingUTF8)) {
+        delete[] mutableStrDeviceName;
+        fprintf(stderr, "Cannot obtain const char* from CFString correctly %ld\n", CFStringGetLength(deviceName));
+    }
+
+    CFRelease(deviceName);
+    return mutableStrDeviceName;
+}
+
+void AudioInput::getInputDevices(std::vector<std::string> &list) {
+    AudioDeviceID* devices;
+    uint32_t deviceCount;
+    OSStatus status;
+
+    getInputDevicesId(devices, deviceCount);
+
+    AudioObjectPropertyAddress propertyAddress = {
+        kAudioHardwarePropertyDevices,
+        kAudioDevicePropertyScopeInput,
+        kAudioObjectPropertyElementMaster
+    };
     for(uint32_t i = 0; i < deviceCount; i++) {
         CFStringRef deviceName = NULL;
-        dataSize = sizeof(deviceName);
+        uint32_t dataSize = sizeof(deviceName);
         propertyAddress.mSelector = kAudioDevicePropertyDeviceNameCFString;
         status = AudioHardwareServiceGetPropertyData(devices[i], &propertyAddress, 0, NULL, &dataSize, &deviceName);
         if(kAudioHardwareNoError != status) {
@@ -217,8 +296,8 @@ void AudioInput::getInputDevices(std::vector<std::string> &list) {
 
         const char* strDeviceName = CFStringGetCStringPtr(deviceName, kCFStringEncodingUTF8);
         if(strDeviceName == NULL) {
-            char* mutableStrDeviceName = new char[CFStringGetLength(deviceName)];
-            if(!CFStringGetCString(deviceName, mutableStrDeviceName, CFStringGetLength(deviceName), kCFStringEncodingUTF8)) {
+            char* mutableStrDeviceName = new char[CFStringGetLength(deviceName)+1];
+            if(!CFStringGetCString(deviceName, mutableStrDeviceName, CFStringGetLength(deviceName)+1, kCFStringEncodingUTF8)) {
                 delete[] mutableStrDeviceName;
                 fprintf(stderr, "Cannot obtain const char* from CFString correctly\n");
             }
