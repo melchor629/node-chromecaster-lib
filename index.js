@@ -1,6 +1,5 @@
-//jshint esversion: 6
 module.exports = {
-    AudioInput: require('./lib/AudioInput'),
-    ChromecastDiscover: require('./lib/ChromecastDiscover'),
-    Webcast: require('./lib/Webcast')
+    AudioInput: require('./out/AudioInput'),
+    ChromecastDiscover: require('./out/ChromecastDiscover'),
+    Webcast: require('./out/Webcast')
 };
