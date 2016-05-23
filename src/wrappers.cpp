@@ -7,21 +7,17 @@
 
 namespace demo {
 
-    using v8::FunctionCallbackInfo;
     using v8::FunctionTemplate;
     using v8::Function;
-    using v8::Isolate;
     using v8::Local;
     using v8::Object;
     using v8::String;
     using v8::Value;
     using v8::Number;
-    using v8::Boolean;
-    using v8::MaybeLocal;
 
     class AudioInputWrapper: public Nan::ObjectWrap {
         public:
-            static void Init(Local<Object> exports);
+            static NAN_MODULE_INIT(Init);
 
             struct Message {
                 const void* pcm;

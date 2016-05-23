@@ -36,7 +36,11 @@
                         "System/Library/Frameworks/CoreFoundation.framework/Headers",
                         "System/Library/Frameworks/AudioToolbox.framework/Headers",
                         "System/Library/Frameworks/CoreAudio.framework/Headers",
-                    ]
+                    ],
+                    'xcode_settings': {
+                        'MACOSX_DEPLOYMENT_TARGET': '10.7',
+                        'OTHER_CPLUSPLUSFLAGS': ['-std=c++11','-stdlib=libc++']
+                    }
                 }]
             ]
         }
