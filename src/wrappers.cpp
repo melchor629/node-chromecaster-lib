@@ -2,6 +2,7 @@
 #include <vector>
 #include <queue>
 #include <string>
+#include <cstring>
 
 #include "AudioInput.hpp"
 
@@ -109,8 +110,8 @@ namespace demo {
 
                 if(!sampleRate.IsEmpty()) {
                     Local<Value> v;
-                    if(sampleRate.ToLocal(&v) && v->IsNumber()) {
-                        opt.sampleRate = v->ToNumber()->ToUint32()->Value();
+                    if(sampleRate.ToLocal(&v)) {
+                        opt.sampleRate = Nan::To<uint32_t>(v).FromMaybe(44100);
                         if(opt.sampleRate != 44100 && opt.sampleRate != 48000
                             && opt.sampleRate != 88200 && opt.sampleRate != 96000) {
                                 opt.sampleRate = 44100;
@@ -120,8 +121,8 @@ namespace demo {
 
                 if(!bps.IsEmpty()) {
                     Local<Value> v;
-                    if(bps.ToLocal(&v) && v->IsNumber()) {
-                        opt.bitsPerSample = v->ToNumber()->ToUint32()->Value();
+                    if(bps.ToLocal(&v)) {
+                        opt.bitsPerSample = Nan::To<uint32_t>(v).FromMaybe(16);
                         if(opt.bitsPerSample != 16 && opt.bitsPerSample != 24 && opt.bitsPerSample != 32 && opt.bitsPerSample != 8) {
                             opt.bitsPerSample = 16;
                         }
@@ -131,7 +132,7 @@ namespace demo {
                 if(!ch.IsEmpty()) {
                     Local<Value> v;
                     if(ch.ToLocal(&v) && v->IsNumber()) {
-                        opt.channels = v->ToNumber()->ToUint32()->Value();
+                        opt.channels = Nan::To<uint32_t>(v).FromMaybe(2);
                         if(opt.channels > 2 || opt.channels == 0) {
                             opt.channels = 2;
                         }
@@ -141,17 +142,16 @@ namespace demo {
                 if(!devName.IsEmpty()) {
                     Local<Value> v;
                     if(devName.ToLocal(&v) && v->IsString()) {
-                        Local<String> str = v->ToString();
-                        opt.devName = new char[str->Utf8Length() + 1];
-                        Nan::DecodeWrite((char*) opt.devName, str->Utf8Length() + 1, str);
-                        ((char*) opt.devName)[str->Utf8Length()] = '\0';
+                        Nan::Utf8String str(v);
+                        opt.devName = new char[str.length() + 1];
+                        strcpy((char*) opt.devName, *str);
                     }
                 }
 
                 if(!timeFrame.IsEmpty()) {
                     Local<Value> v;
                     if(timeFrame.ToLocal(&v) && v->IsNumber())
-                        opt.frameDuration = v->ToNumber()->ToUint32()->Value();
+                        opt.frameDuration = Nan::To<uint32_t>(v).FromMaybe(100);
                 }
             }
 
@@ -170,7 +170,7 @@ namespace demo {
             const int argc = 1;
             Local<Value> argv[argc] = { info[0] };
             Local<Function> cons = Nan::New(constructor);
-            info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+            info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
         }
     }
 
@@ -251,7 +251,7 @@ namespace demo {
     }
 
     NAN_METHOD(AudioInputWrapper::ErrorToString) {
-        int errorCode = info[0]->ToNumber()->ToUint32()->Value();
+        int errorCode = Nan::To<int32_t>(info[0]).FromJust();
         const char* str = AudioInput::errorCodeToString(errorCode);
         if(str != nullptr) {
             info.GetReturnValue().Set(Nan::New(str).ToLocalChecked());

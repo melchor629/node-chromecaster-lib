@@ -57,7 +57,7 @@ var ChromecastDevice = function (_events$EventEmitter) {
                             streamType: 'LIVE',
                             metadata: {
                                 type: 0,
-                                metadataType: 0,
+                                metadataType: 3,
                                 title: streamName
                             }
                         }, { autoplay: true }, function (err, status) {

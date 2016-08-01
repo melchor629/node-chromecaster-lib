@@ -30,7 +30,11 @@ var Webcast = function (_stream$Writable) {
         _this._app.get('/', function (req, res) {
             res.set({
                 'Content-Type': _this._contentType,
-                'Transfer-Encoding': 'chunked'
+                //'Transfer-Encoding': 'chunked',
+                'Connection': 'close',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD',
+                'Access-Control-Allow-Headers': 'Origin, Accept, X-Requested-With, Content-Type'
             });
 
             var close = function close() {
@@ -46,7 +50,10 @@ var Webcast = function (_stream$Writable) {
         _this._app.head('/', function (req, res) {
             res.set({
                 'Content-Type': _this._contentType,
-                'Transfer-Encoding': 'chunked'
+                //'Transfer-Encoding': 'chunked',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD',
+                'Access-Control-Allow-Headers': 'Origin, Accept, X-Requested-With, Content-Type'
             });
         });
 
