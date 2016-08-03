@@ -13,7 +13,7 @@
     "bindings": "^1.2.1",
     "castv2-client": "^1.1.1",
     "express": "^4.13.4",
-    "mdns": "^2.3.3",
+    "mdns-js": "^0.5.0",
     "nan": "^2.4.0"
   },
   "devDependencies": {
