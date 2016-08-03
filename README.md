@@ -13,7 +13,7 @@ This library currently only works on OS X and Linux.
 $ npm install chromecaster-lib
 ```
 
-**Linux Users**: You must install *libpulse-dev* and *libavahi-compat-libdnssd-dev* packages before installing this one.
+**Linux Users**: You must install *libpulse-dev* packages before installing this one.
 
 Example
 ------------
