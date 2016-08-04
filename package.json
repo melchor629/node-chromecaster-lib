@@ -1,6 +1,6 @@
 {
   "name": "chromecaster-lib",
-  "version": "0.3.2",
+  "version": "0.3.4",
   "description": "Library for casting audio from your OS X/Linux computer to Chromecast",
   "main": "index.js",
   "scripts": {
