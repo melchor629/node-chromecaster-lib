@@ -47,12 +47,12 @@ int AudioInput::open() {
     if(self->open) return 1;
 
     OSStatus status;
-    double samplesPerFrame = double(options.sampleRate) * double(options.frameDuration) / 1000.0 * double(options.channels);
+    double samplesPerFrame = double(options.sampleRate) * double(options.frameDuration) / 1000.0 * double(options.channels) * options.bitsPerSample / 8;
     status = AudioQueueNewInput(&self->format, input_callback, this, NULL, kCFRunLoopCommonModes, 0, &self->inQueue);
     if(status != 0) return status;
 
     for(int i = 0; i < NUM_OF_BUFFERS; i++) {
-        status = AudioQueueAllocateBuffer(self->inQueue, samplesPerFrame, &self->inBuffer[i]);
+        status = AudioQueueAllocateBuffer(self->inQueue, uint32_t(samplesPerFrame), &self->inBuffer[i]);
         if(status != 0) {
             AudioQueueDispose(self->inQueue, true);
             return status;
@@ -119,7 +119,7 @@ static void input_callback(
     AudioInput* ai = (AudioInput*) custom_data;
 
     if(ai->self->open) {
-        ai->callCallback(num_packets * 4, buffer->mAudioData);
+        ai->callCallback(num_packets * ai->self->format.mBytesPerPacket, buffer->mAudioData);
     }
     AudioQueueEnqueueBuffer(queue, buffer, 0, NULL);
 }
