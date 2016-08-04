@@ -3,6 +3,7 @@
 #include <queue>
 #include <string>
 #include <cstring>
+#include <algorithm>
 
 #include "AudioInput.hpp"
 
@@ -67,6 +68,10 @@ namespace demo {
         uv_mutex_destroy(&message_mutex);
         delete[] ai->options.devName;
         delete ai;
+
+        //Delete this reference from `instances`
+        auto pos = std::find(instances.begin(), instances.end(), this);
+        instances.erase(pos);
     }
 
     NAN_MODULE_INIT(AudioInputWrapper::Init) {

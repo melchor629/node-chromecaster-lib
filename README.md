@@ -4,7 +4,9 @@ A library to send your input sound to the Chromecast.
 
 Offers a simple way to get audio from system, discovering Chromecasts and sending audio to it. Audio codec is in your hands.
 
-This version is in (_really_) alpha, so any help is welcome.
+This version is in (_truly_) beta, so any help is welcome.
+
+For implement audio capturing from Windows, **pull requests are welcome**. To implement it, only you need to create an implementation (not a new class) of `src/AudioInput.hpp` class, and follow the examples from OS X and Linux.
 
 Installation
 ----------------
@@ -37,7 +39,7 @@ cd.on('deviceUp', function(name) {
         sampleRate: 44100,
         bitRate: 320,
         outSampleRate: 44100,
-        mode: lame.STEREO
+        mode: lame.JOINTSTEREO
     });
     let audioInput = new AudioInput();
     let webcast = new Webcast({ port: 8080 });
@@ -59,7 +61,7 @@ cd.start();
 
 API
 -----
-### AudioInput
+## AudioInput
 inherits from EventEmitter
 
 **constructor([options])**
@@ -91,16 +93,16 @@ Returns `true` if the stream is open, `false` otherwise.
 Returns `true` if the stream is open and paused, or is closed.
 
 **event 'data'**
-Every frame is received, will be sent via this event. Event has only one argument: the interleaved audio buffer.
+Every processed frame, will be emitted on this event. Event has only one argument: the interleaved audio buffer.
 
-## String AudioInput.Error(Number)
+### String AudioInput.Error(Number)
 Converts the error returned in `Number AudioInput.open()` into a string.
 
-## [String] AudioInput.getDevices()
+### [String] AudioInput.getDevices()
 Returns the devices available in the system. Useful to change the input device
 when creating an `AudioInput`.
 
-### Webcast
+## Webcast
 inherits from stream.Writable
 
 **constructor([options])**
@@ -124,7 +126,7 @@ Obtains the contentType of the input stream, that is, the stream that will outpu
 **get port**
 Gets the port the server is listening on.
 
-### ChromecastDiscover
+## ChromecastDiscover
 inherits from events.EventEmitter
 
 **constructor()**
@@ -154,7 +156,7 @@ Event emitted when a device has been found. Argument is the name of the device.
 **event 'deviceDown'**
 Event emitted when a device has been disconnected. Argument is the name of the device.
 
-### ChromecastDevice
+## ChromecastDevice
 inherits from events.EventEmitter
 
 **constructor(device)**
