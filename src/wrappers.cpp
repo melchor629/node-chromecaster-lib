@@ -68,6 +68,7 @@ namespace demo {
         uv_mutex_destroy(&message_mutex);
         delete[] ai->options.devName;
         delete ai;
+        ai = nullptr;
 
         //Delete this reference from `instances`
         auto pos = std::find(instances.begin(), instances.end(), this);
