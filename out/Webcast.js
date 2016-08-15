@@ -19,7 +19,7 @@ var Webcast = function (_stream$Writable) {
     function Webcast(opt) {
         _classCallCheck(this, Webcast);
 
-        var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Webcast).call(this, { write: Webcast._write, writev: Webcast._writev }));
+        var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Webcast).call(this, opt));
 
         opt = opt || {};
         _this._port = opt.port || 3000;
@@ -30,30 +30,24 @@ var Webcast = function (_stream$Writable) {
         _this._app.get('/', function (req, res) {
             res.set({
                 'Content-Type': _this._contentType,
-                //'Transfer-Encoding': 'chunked',
-                'Connection': 'close',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, HEAD',
-                'Access-Control-Allow-Headers': 'Origin, Accept, X-Requested-With, Content-Type'
+                'Connection': 'close'
             });
 
             var close = function close() {
                 var idx = this._connectedClients.indexOf(res);
                 this._connectedClients.splice(idx, 1);
+                this.emit('disconnected', idx);
             };
 
             _this._connectedClients.push(res);
             res.on('close', close.bind(_this));
             res.on('finish', close.bind(_this));
+            _this.emit('connected', _this._connectedClients.length - 1, req, res);
         });
 
         _this._app.head('/', function (req, res) {
             res.set({
-                'Content-Type': _this._contentType,
-                //'Transfer-Encoding': 'chunked',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, HEAD',
-                'Access-Control-Allow-Headers': 'Origin, Accept, X-Requested-With, Content-Type'
+                'Content-Type': _this._contentType
             });
         });
 

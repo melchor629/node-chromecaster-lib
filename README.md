@@ -114,7 +114,7 @@ Creates a web server to send the input audio to the Chromecast (_or something el
 **stop()**
 Closes the server
 
-**write(buffer [,  encoding, cbk])**
+**write(buffer [, encoding, cbk])**
 Writes some bytes to the clients that are listening. Encoding is usually omitted.
 
 **get localIp**
@@ -125,6 +125,16 @@ Obtains the contentType of the input stream, that is, the stream that will outpu
 
 **get port**
 Gets the port the server is listening on.
+
+**event 'connect'**
+When some client is connected to the local web server. The event passes three arguments:
+
+ - id: _some kind of id for the client connected_ the position on the internal clients array
+ - req: _req object from express.js_
+ - res: _res object from express.js_
+
+**event 'disconnect'**
+When a client closes the connexion, this event is emitted passing the before mentioned _id_.
 
 ## ChromecastDiscover
 inherits from events.EventEmitter
