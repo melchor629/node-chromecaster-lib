@@ -43,6 +43,7 @@ namespace demo {
             static void Destructor(void*);
             static Nan::Persistent<Function> constructor;
             static std::vector<AudioInputWrapper*> instances;
+
             AudioInput* ai;
             uv_async_t message_async;
             uv_mutex_t message_mutex;
@@ -184,10 +185,13 @@ namespace demo {
         (void)nothing;
 
         for(auto it = AudioInputWrapper::instances.begin(); it != AudioInputWrapper::instances.end(); it++) {
-            if((*it)->ai->isOpen())
-                (*it)->ai->close();
-            uv_mutex_destroy(&(*it)->message_mutex);
-            delete (*it)->ai;
+            AudioInputWrapper* p = *it;
+            if(p->ai->isOpen())
+                p->ai->close();
+            delete[] p->ai->options.devName;
+            uv_mutex_destroy(&(p->message_mutex));
+            delete p->ai;
+            p->ai = nullptr;
         }
 
         AudioInput::staticDeinit();

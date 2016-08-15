@@ -203,7 +203,7 @@ static OSStatus setInputDevice(const char* name) {
         strlen(name),
         kCFStringEncodingUTF8,
         false,
-        nullptr);
+        kCFAllocatorNull);
 
     for(uint32_t i = 0; i < deviceCount; i++) {
         CFStringRef deviceName = nullptr;
@@ -246,6 +246,7 @@ static char* getDefaultInputDeviceName() {
     char* mutableStrDeviceName = new char[CFStringGetLength(deviceName)+1];
     if(!CFStringGetCString(deviceName, mutableStrDeviceName, CFStringGetLength(deviceName)+1, kCFStringEncodingUTF8)) {
         delete[] mutableStrDeviceName;
+        mutableStrDeviceName = nullptr;
         fprintf(stderr, "Cannot obtain const char* from CFString correctly %ld\n", CFStringGetLength(deviceName));
     }
 
