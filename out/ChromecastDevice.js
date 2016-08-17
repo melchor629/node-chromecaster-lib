@@ -54,10 +54,9 @@ var ChromecastDevice = function (_events$EventEmitter) {
                         player.load({
                             contentId: 'http://' + _this2._webcast.localIp + ':' + _this2._webcast.port + '/',
                             contentType: _this2._webcast.contentType,
-                            streamType: 'LIVE',
+                            streamType: 'BUFFERED',
                             metadata: {
-                                type: 0,
-                                metadataType: 3,
+                                metadataType: 0,
                                 title: streamName
                             }
                         }, { autoplay: true }, function (err, status) {

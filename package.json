@@ -12,7 +12,6 @@
   "dependencies": {
     "bindings": "^1.2.1",
     "castv2-client": "^1.1.2",
-    "express": "^4.14.0",
     "mdns": "^2.3.3",
     "nan": "^2.4.0"
   },

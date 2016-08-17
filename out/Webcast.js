@@ -9,7 +9,7 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 //jshint esversion: 6
-var express = require('express');
+var http = require('http');
 var interfaces = require('os').networkInterfaces();
 var stream = require('stream');
 
@@ -24,34 +24,33 @@ var Webcast = function (_stream$Writable) {
         opt = opt || {};
         _this._port = opt.port || 3000;
         _this._contentType = opt.contentType || 'audio/mp3';
-        _this._app = express();
         _this._connectedClients = [];
 
-        _this._app.get('/', function (req, res) {
-            res.set({
-                'Content-Type': _this._contentType,
-                'Connection': 'close'
-            });
+        _this._server = http.createServer(function (req, res) {
+            if (req.method === 'GET') {
+                res.setHeader('Content-Type', _this._contentType);
+                res.setHeader('Connection', 'close');
 
-            var close = function close() {
-                var idx = this._connectedClients.indexOf(res);
-                this._connectedClients.splice(idx, 1);
-                this.emit('disconnected', idx);
-            };
+                var close = function close() {
+                    var idx = this._connectedClients.indexOf(res);
+                    this._connectedClients.splice(idx, 1);
+                    this.emit('disconnected', idx);
+                };
 
-            _this._connectedClients.push(res);
-            res.on('close', close.bind(_this));
-            res.on('finish', close.bind(_this));
-            _this.emit('connected', _this._connectedClients.length - 1, req, res);
+                _this._connectedClients.push(res);
+                res.on('close', close.bind(_this));
+                res.on('finish', close.bind(_this));
+                _this.emit('connected', _this._connectedClients.length - 1, req, res);
+            } else if (req.method === 'HEAD') {
+                res.setHeader('Content-Type', _this._contentType);
+                res.end();
+            } else {
+                res.status(400);
+                res.end("Bad request");
+            }
         });
 
-        _this._app.head('/', function (req, res) {
-            res.set({
-                'Content-Type': _this._contentType
-            });
-        });
-
-        _this._server = _this._app.listen(_this.port);
+        _this._server.listen(_this.port);
         return _this;
     }
 
@@ -101,6 +100,31 @@ var Webcast = function (_stream$Writable) {
     }, {
         key: 'stop',
         value: function stop() {
+            var _iteratorNormalCompletion = true;
+            var _didIteratorError = false;
+            var _iteratorError = undefined;
+
+            try {
+                for (var _iterator = this._connectedClients[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                    var client = _step.value;
+
+                    client.end();
+                }
+            } catch (err) {
+                _didIteratorError = true;
+                _iteratorError = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion && _iterator.return) {
+                        _iterator.return();
+                    }
+                } finally {
+                    if (_didIteratorError) {
+                        throw _iteratorError;
+                    }
+                }
+            }
+
             this._server.close();
         }
     }, {
