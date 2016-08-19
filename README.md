@@ -6,16 +6,23 @@ Offers a simple way to get audio from system, discovering Chromecasts and sendin
 
 This version is in (_truly_) beta, so any help is welcome.
 
-For implement audio capturing from Windows, **pull requests are welcome**. To implement it, only you need to create an implementation (not a new class) of `src/AudioInput.hpp` class, and follow the examples from OS X and Linux.
+For implement audio capturing from Windows, **pull requests are welcome**. Right now, is a really basic form of capturing audio using WASAPI
+and may have some bugs or bad performance.
 
 Installation
 ----------------
-This library currently only works on OS X and Linux.
+This library currently only works on OS X and Linux (Windows is experimental).
 ```
 $ npm install chromecaster-lib
 ```
 
 **Linux Users**: You must install *libpulse-dev* and *libavahi-compat-libdnssd-dev* packages before installing this one.
+
+**Windows Users**:
+ - You must install Apple "Bonjour SDK for Windows" (look for it on Google), and check for the variable `BONJOUR_SDK_HOME` in your CMD.
+ - If you have problems compiling this library (or one of its dependencies), [see this issue](https://github.com/nodejs/node-gyp/issues/972).
+ - Only supported sample rate is the one configured on Sound panel, other sample rates
+ will make the `AudioInput.open()` to fail (_limitation of WASAPI_).
 
 Example
 ------------

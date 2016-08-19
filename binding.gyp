@@ -14,9 +14,6 @@
             "conditions": [
                 ['OS=="linux"', {
                     "sources": ["src/LinuxAudioInput.cpp"],
-                    "include_dirs": [
-
-                    ],
                     "link_settings": {
                         "libraries": [
                             "-lpulse"
@@ -41,6 +38,17 @@
                         'MACOSX_DEPLOYMENT_TARGET': '10.7',
                         'OTHER_CPLUSPLUSFLAGS': ['-std=c++11','-stdlib=libc++']
                     }
+                }],
+                ['OS=="win"', {
+                    "sources": ["src/WASAPIAudioInput.cpp"],
+                    "link_settings": {
+                        "libraries": [
+                            "Avrt.lib"
+                        ]
+                    },
+                    "defines": [
+                        "UNICODE", "_UNICODE"
+                    ]
                 }]
             ]
         }

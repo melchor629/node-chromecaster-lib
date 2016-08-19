@@ -7,6 +7,12 @@
 
 #include "AudioInput.hpp"
 
+#ifdef _MSC_VER
+#define and &&
+#define or ||
+#define not !
+#endif
+
 namespace demo {
 
     using v8::FunctionTemplate;

@@ -106,6 +106,7 @@ void AudioInput::close() {
 AudioInput::~AudioInput() {
     close();
     delete[] self->defaultDevice;
+    delete self;
 }
 
 static void input_callback(
