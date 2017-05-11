@@ -168,12 +168,6 @@ namespace demo {
                 }
             }
 
-            printf("Audio settings:\n");
-            printf("  - sampleRate %u\n", opt.sampleRate);
-            printf("  - bitsPerSample %u\n", opt.bitsPerSample);
-            printf("  - channels %u\n", opt.channels);
-            printf("  - frameDuration %u\n", opt.frameDuration);
-            printf("  - devName %s\n", opt.devName);
             AudioInputWrapper* obj = new AudioInputWrapper(opt);
             obj->message_async.data = obj;
             obj->Wrap(info.This());

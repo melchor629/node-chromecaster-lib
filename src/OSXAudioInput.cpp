@@ -287,7 +287,7 @@ void AudioInput::getInputDevices(std::vector<std::string> &list) {
         }
 
         AudioBufferList *bufferList = (AudioBufferList *) malloc(dataSize);
-        status = AudioHardwareServiceGetPropertyData(devices[i], &propertyAddress, 0, NULL, &dataSize, bufferList);
+        status = AudioObjectGetPropertyData(devices[i], &propertyAddress, 0, NULL, &dataSize, bufferList);
         if(kAudioHardwareNoError != status || 0 == bufferList->mNumberBuffers) {
             if(kAudioHardwareNoError != status)
                 fprintf(stderr, "AudioObjectGetPropertyData (kAudioDevicePropertyStreamConfiguration) failed: %i\n", status);
