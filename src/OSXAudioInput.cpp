@@ -165,7 +165,7 @@ static void getInputDevicesId(AudioDeviceID* &devices, uint32_t &count) {
     };
 
     uint32_t dataSize = 0;
-    OSStatus status = AudioHardwareServiceGetPropertyDataSize(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &dataSize);
+    OSStatus status = AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &dataSize);
     if(kAudioHardwareNoError != status) {
         fprintf(stderr, "AudioObjectGetPropertyDataSize (kAudioHardwarePropertyDevices) failed: %i\n", status);
         devices = nullptr;
@@ -176,7 +176,7 @@ static void getInputDevicesId(AudioDeviceID* &devices, uint32_t &count) {
     count = uint32_t(dataSize / sizeof(AudioDeviceID));
     devices = new AudioDeviceID[count];
 
-    status = AudioHardwareServiceGetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &dataSize, devices);
+    status = AudioObjectGetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &dataSize, devices);
     if(kAudioHardwareNoError != status) {
         fprintf(stderr, "AudioObjectGetPropertyData (kAudioHardwarePropertyDevices) failed: %i\n", status);
         delete[] devices;
@@ -209,9 +209,9 @@ static OSStatus setInputDevice(const char* name) {
     for(uint32_t i = 0; i < deviceCount; i++) {
         CFStringRef deviceName = nullptr;
         propertyAddress.mSelector = kAudioDevicePropertyDeviceNameCFString;
-        AudioHardwareServiceGetPropertyData(devices[i], &propertyAddress, 0, nullptr, &dataSize, &deviceName);
+        AudioObjectGetPropertyData(devices[i], &propertyAddress, 0, nullptr, &dataSize, &deviceName);
 
-        if(CFStringCompare(desiredDeviceName, deviceName, 0) == kCFCompareEqualTo) {
+        if(deviceName != nullptr && CFStringCompare(desiredDeviceName, deviceName, 0) == kCFCompareEqualTo) {
             propertyAddress.mSelector = kAudioHardwarePropertyDefaultInputDevice;
             propertyAddress.mScope = kAudioObjectPropertyScopeGlobal;
             propertyAddress.mElement = kAudioObjectPropertyElementMaster;
@@ -221,7 +221,7 @@ static OSStatus setInputDevice(const char* name) {
             break;
         }
 
-        CFRelease(deviceName);
+        if(deviceName != nullptr) CFRelease(deviceName);
     }
 
     delete[] devices;
