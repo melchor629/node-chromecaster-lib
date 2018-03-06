@@ -1,5 +1,5 @@
 module.exports = {
-    AudioInput: require('./out/AudioInput'),
-    ChromecastDiscover: require('./out/ChromecastDiscover'),
-    Webcast: require('./out/Webcast')
+    AudioInput: require('./lib/AudioInput'),
+    ChromecastDiscover: require('./lib/ChromecastDiscover'),
+    Webcast: require('./lib/Webcast')
 };

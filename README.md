@@ -16,13 +16,15 @@ This library currently only works on OS X and Linux (Windows is experimental).
 $ npm install chromecaster-lib
 ```
 
-**Linux Users**: You must install *libpulse-dev* and *libavahi-compat-libdnssd-dev* packages before installing this one.
+**Mac Users**: You must install portaudio using `brew install portaudio`.
+
+**Linux Users**: You must install *portaudio19-dev* and *libavahi-compat-libdnssd-dev* packages before installing this one.
 
 **Windows Users**:
  - You must install Apple "Bonjour SDK for Windows" (look for it on Google), and check for the variable `BONJOUR_SDK_HOME` in your CMD.
  - If you have problems compiling this library (or one of its dependencies), [see this issue](https://github.com/nodejs/node-gyp/issues/972).
- - Only supported sample rate is the one configured on Sound panel, other sample rates
- will make the `AudioInput.open()` to fail (_limitation of WASAPI_).
+ - Also, you must compile [portaudio](http://portaudio.com) for 64bit. Follow the instructions in `build/msvc/readme.txt` to make it compile. Use release version. To test/use the library, copy the `portaudio_x64.dll` into the root of the project.
+ - For compiling, you must pass `--PORTAUDIO_DIR="..."` argument to `node-gyp`. Must point to the root of the portaudio source directory.
 
 Example
 ------------

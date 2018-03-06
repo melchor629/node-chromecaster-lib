@@ -112,7 +112,7 @@ namespace demo {
         if (info.IsConstructCall()) {
             // Invoked as constructor: `new AudioInputWrapper(...)`
             Local<Value> value2 = info[0];
-            AudioInput::Options opt = {44100, 16, 2, 100, nullptr};
+            AudioInput::Options opt = {44100, 16, 2, 0, nullptr};
             if(!value2->IsUndefined() and value2->IsObject()) {
                 Local<Object> value = value2->ToObject();
                 auto sampleRate = Nan::Get(value, Nan::New("samplerate").ToLocalChecked());
@@ -164,7 +164,7 @@ namespace demo {
                 if(!timeFrame.IsEmpty()) {
                     Local<Value> v;
                     if(timeFrame.ToLocal(&v) && v->IsNumber())
-                        opt.frameDuration = Nan::To<uint32_t>(v).FromMaybe(100);
+                        opt.frameDuration = Nan::To<uint32_t>(v).FromMaybe(0);
                 }
             }
 
@@ -226,16 +226,22 @@ namespace demo {
         obj->ai->close();
         uv_close((uv_handle_t*) &obj->message_async, nullptr);
         uv_unref((uv_handle_t*) &obj->message_async);
+        info.GetReturnValue().Set(Nan::Undefined());
     }
 
     NAN_METHOD(AudioInputWrapper::pause) {
         AudioInputWrapper* obj = Nan::ObjectWrap::Unwrap<AudioInputWrapper>(info.Holder());
         obj->ai->pause();
+        info.GetReturnValue().Set(Nan::Undefined());
     }
 
     NAN_METHOD(AudioInputWrapper::isPaused) {
         AudioInputWrapper* obj = Nan::ObjectWrap::Unwrap<AudioInputWrapper>(info.Holder());
         info.GetReturnValue().Set(Nan::New(obj->ai->isPaused()));
+    }
+
+    static void deleteUsingCpp(char* ptr, void*) {
+        delete[] ptr;
     }
 
     void AudioInputWrapper::EmitMessage(uv_async_t *w) {
@@ -250,8 +256,13 @@ namespace demo {
             v8::Local<v8::Value> args[2];
             args[0] = Nan::New("data").ToLocalChecked();
 
-            // create the node buffer for audio data
-            args[1] = Nan::CopyBuffer((const char*) message->pcm, message->size).ToLocalChecked();
+            //Create a node.js Buffer for audio data
+            args[1] = Nan::NewBuffer(
+                (char*) message->pcm,
+                message->size,
+                deleteUsingCpp,
+                nullptr
+            ).ToLocalChecked();
 
             Nan::MakeCallback(input->handle(), "emit", 2, args);
             input->message_queue.pop();

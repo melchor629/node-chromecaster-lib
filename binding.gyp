@@ -13,26 +13,23 @@
             },
             "conditions": [
                 ['OS=="linux"', {
-                    "sources": ["src/LinuxAudioInput.cpp"],
+                    "sources": ["src/PortAudioInput.cpp"],
                     "link_settings": {
                         "libraries": [
-                            "-lpulse"
+                            "-lportaudio"
                         ]
                     }
                 }],
                 ['OS=="mac"', {
-                    "sources": ["src/OSXAudioInput.cpp"],
+                    "sources": ["src/PortAudioInput.cpp"],
                     "link_settings": {
                         "libraries": [
-                            "-framework CoreFoundation",
-                            "-framework CoreAudio",
-                            "-framework AudioToolbox"
+                            '-L/usr/local/lib',
+                            "-lportaudio"
                         ]
                     },
                     "include_dirs": [
-                        "System/Library/Frameworks/CoreFoundation.framework/Headers",
-                        "System/Library/Frameworks/AudioToolbox.framework/Headers",
-                        "System/Library/Frameworks/CoreAudio.framework/Headers",
+                        "/usr/local/include",
                     ],
                     'xcode_settings': {
                         'MACOSX_DEPLOYMENT_TARGET': '10.7',
@@ -40,12 +37,15 @@
                     }
                 }],
                 ['OS=="win"', {
-                    "sources": ["src/WASAPIAudioInput.cpp"],
+                    "sources": ["src/PortAudioInput.cpp"],
                     "link_settings": {
                         "libraries": [
-                            "Avrt.lib"
+                            "<(PORTAUDIO_DIR)\\build\\msvc\\x64\\Release\\portaudio_x64.lib"
                         ]
                     },
+                    "include_dirs": [
+                        "<(PORTAUDIO_DIR)\\include"
+                    ],
                     "defines": [
                         "UNICODE", "_UNICODE"
                     ]
