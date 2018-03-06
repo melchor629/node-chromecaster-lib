@@ -16,6 +16,8 @@ This library currently only works on OS X and Linux (Windows is experimental).
 $ npm install chromecaster-lib
 ```
 
+For electron 1.8, node 8 and 9, it will download a compiled version from Github.
+
 **Mac Users**: You must install portaudio using `brew install portaudio`.
 
 **Linux Users**: You must install *portaudio19-dev* and *libavahi-compat-libdnssd-dev* packages before installing this one.
