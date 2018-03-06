@@ -1,11 +1,16 @@
 #include "AudioInput.hpp"
 #include <portaudio.h>
 #include <nan.h>
+#include "dl.hpp"
 
 struct private_data {
     PaStream* stream = nullptr;
     bool isPaused = false;
 };
+
+static Library* portaudio = nullptr;
+static bool loadLibrary(std::string path = "");
+static void unloadLibrary();
 
 int stream_cbk(const void *input,
                void *output,
@@ -14,10 +19,18 @@ int stream_cbk(const void *input,
                PaStreamCallbackFlags statusFlags,
                void *userData);
 
-void AudioInput::staticInit() {
-    int err = Pa_Initialize();
-    if(err != paNoError) {
-        Nan::ThrowError(Pa_GetErrorText(err));
+void AudioInput::staticInit(std::string path) {
+    if(portaudio == nullptr) {
+        if(loadLibrary(path)) {
+            int err = Pa_Initialize();
+            if(err != paNoError) {
+                Nan::ThrowError(Pa_GetErrorText(err));
+            }
+        } else if(!path.empty()) {
+            Nan::ThrowError("Could not load native library");
+        }
+    } else {
+        Nan::ThrowError("Library 'portaudio' has already been loaded");
     }
 }
 
@@ -26,6 +39,11 @@ void AudioInput::staticDeinit() {
     if(err != paNoError) {
         Nan::ThrowError(Pa_GetErrorText(err));
     }
+    unloadLibrary();
+}
+
+bool AudioInput::isLoaded() {
+    return portaudio != nullptr;
 }
 
 void AudioInput::getInputDevices(std::vector<std::string> &list) {
@@ -78,6 +96,11 @@ static inline int bitsPerSampleToSampleFormat(int bitsPerSample) {
 }
 
 void AudioInput::selfInit() {
+    if(portaudio == nullptr) {
+        Nan::ThrowError("Native library is not loaded. Load it using AudioInput.loadNativeLibrary(\"pathToLibrary\");");
+        return;
+    }
+
     self = new private_data;
 
     PaStreamParameters params;
@@ -170,7 +193,6 @@ int stream_cbk(const void *input,
         printf("\n");
     }
     size_t bytes = frameCount * self->options.bitsPerSample / 8 * self->options.channels;
-    //void* pcm = malloc(bytes);
     void* pcm = (void*) new char[bytes];
     memcpy(pcm, input, bytes);
     self->callCallback(
@@ -178,4 +200,131 @@ int stream_cbk(const void *input,
         pcm
     );
     return paContinue;
+}
+
+
+static bool loadLibrary(std::string path) {
+    if(portaudio == nullptr) {
+        if(path.empty()) {
+            portaudio = Library::load("libportaudio");
+            if(portaudio == nullptr) {
+#ifndef WIN32
+                portaudio = Library::load("libportaudio", "so.2");
+                if(portaudio == nullptr) {
+                    portaudio = Library::load("./lib/libportaudio");
+                }
+#else
+                portaudio = Library::load("portaudio_x64", "dll");
+                if(portaudio == nullptr) {
+                    portaudio = Library::load("./lib/portaudio");
+                    if(portaudio == nullptr) {
+                        portaudio = Library::load("./lib/portaudio_x64");
+                    }
+                }
+#endif
+            }
+        } else {
+            portaudio = Library::load(path);
+        }
+
+        return portaudio != nullptr;
+    }
+
+    return true;
+}
+
+static void unloadLibrary() {
+    delete portaudio;
+}
+
+extern "C" PaError Pa_Initialize(void) {
+    PaError(*func)(void) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_Initialize");
+    return func();
+}
+
+extern "C" PaError Pa_Terminate(void) {
+    PaError(*func)(void) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_Terminate");
+    return func();
+}
+
+extern "C" const char* Pa_GetErrorText(PaError err) {
+    const char*(*func)(PaError) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_GetErrorText");
+    return func(err);
+}
+
+extern "C" PaError Pa_GetDeviceCount(void) {
+    PaError(*func)(void) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_GetDeviceCount");
+    return func();
+}
+
+extern "C" const PaDeviceInfo* Pa_GetDeviceInfo(PaDeviceIndex index) {
+    const PaDeviceInfo*(*func)(PaDeviceIndex) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_GetDeviceInfo");
+    return func(index);
+}
+
+extern "C" const PaHostApiInfo* Pa_GetHostApiInfo(PaHostApiIndex index) {
+    const PaHostApiInfo*(*func)(PaHostApiIndex) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_GetHostApiInfo");
+    return func(index);
+}
+
+extern "C" PaDeviceIndex Pa_GetDefaultInputDevice(void) {
+    PaDeviceIndex(*func)(void) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_GetDefaultInputDevice");
+    return func();
+}
+
+extern "C" PaError Pa_IsFormatSupported(const PaStreamParameters* in, const PaStreamParameters* out, double sampleRate) {
+    PaError(*func)(const PaStreamParameters*, const PaStreamParameters*, double) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_IsFormatSupported");
+    return func(in, out, sampleRate);
+}
+
+extern "C" PaError Pa_OpenStream(PaStream** stream,
+                       const PaStreamParameters * in,
+                       const PaStreamParameters * out,
+                       double sampleRate,
+                       unsigned long time,
+                       PaStreamFlags flags,
+                       PaStreamCallback * cbk,
+                       void * userData) {
+    PaError(*func)(PaStream**,
+                   const PaStreamParameters *,
+                   const PaStreamParameters *,
+                   double,
+                   unsigned long,
+                   PaStreamFlags,
+                   PaStreamCallback *,
+                   void *) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_OpenStream");
+    return func(stream, in, out, sampleRate, time, flags, cbk, userData);
+}
+
+extern "C" PaError Pa_StartStream(PaStream* stream) {
+    PaError(*func)(PaStream*) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_StartStream");
+    return func(stream);
+}
+
+extern "C" PaError Pa_StopStream(PaStream* stream) {
+    PaError(*func)(PaStream*) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_StopStream");
+    return func(stream);
+}
+
+extern "C" PaError Pa_AbortStream(PaStream* stream) {
+    PaError(*func)(PaStream*) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_AbortStream");
+    return func(stream);
+}
+
+extern "C" PaError Pa_CloseStream(PaStream* stream) {
+    PaError(*func)(PaStream*) = nullptr;
+    if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_CloseStream");
+    return func(stream);
 }

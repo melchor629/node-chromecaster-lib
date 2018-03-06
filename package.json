@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "prebuild -t 8.9.4 -t 9.7.1 && prebuild -t 1.8.2 -r electron",
-    "preinstall": "prebuild-install"
+    "install": "prebuild-install || node-gyp rebuild"
   },
   "author": "melchor9000",
   "repository": "https://github.com/melchor629/node-chromecaster-lib",

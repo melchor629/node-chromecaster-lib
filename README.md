@@ -16,7 +16,7 @@ This library currently only works on OS X and Linux (Windows is experimental).
 $ npm install chromecaster-lib
 ```
 
-For electron 1.8, node 8 and 9, it will download a compiled version from Github.
+For electron 1.8, node 8 and 9, it will download a compiled version from Github. Uses the library portaudio, but to compile, doesn't need to have the library itself, only the headers. To execute, the library can be put on an accessible path or can be put anywhere and load it using `AudioInput.loadNativeLibrary(String)`.
 
 **Mac Users**: You must install portaudio using `brew install portaudio`.
 
@@ -25,8 +25,8 @@ For electron 1.8, node 8 and 9, it will download a compiled version from Github.
 **Windows Users**:
  - You must install Apple "Bonjour SDK for Windows" (look for it on Google), and check for the variable `BONJOUR_SDK_HOME` in your CMD.
  - If you have problems compiling this library (or one of its dependencies), [see this issue](https://github.com/nodejs/node-gyp/issues/972).
- - Also, you must compile [portaudio](http://portaudio.com) for 64bit. Follow the instructions in `build/msvc/readme.txt` to make it compile. Use release version. To test/use the library, copy the `portaudio_x64.dll` into the root of the project.
- - For compiling, you must pass `--PORTAUDIO_DIR="..."` argument to `node-gyp`. Must point to the root of the portaudio source directory.
+ - You can compile [portaudio](http://portaudio.com) for 64bit. **(optionally)** Follow the instructions in `build/msvc/readme.txt` to make it compile. Use release version. To test/use the library, copy the `portaudio_x64.dll` into the root of the project.
+ - For compiling, you must pass `--PORTAUDIO_DIR="..."` argument to `npm install ...` or `node-gyp configure ...`. Must point to the root of the portaudio source directory.
 
 Example
 ------------
@@ -84,9 +84,11 @@ Creates the object passing some options. `options` object can contain the follow
 - `deviceName` *name of the device which capture the audio* [system default]
 - `timePerFrame` *number of milliseconds to capture per frame* [100ms]
 
-NOTE: Invalid values in the above options, will derive to default value.
+ > **NOTE:** Invalid values in the above options will use the default value.
 
-NOTE: For `deviceName`, try with values from `AudioInput.getDevices()`.
+ > **NOTE:** For `deviceName`, try with any value from `AudioInput.getDevices()`.
+
+ > **Observation:** If the native library is not loaded, the constructor will throw an Error.
 
 **Number open()**
 Opens the Input Audio Stream. If the return value is different from 0, then an error has occurred. In this case, see `AudioInput.Error`.
@@ -106,12 +108,18 @@ Returns `true` if the stream is open and paused, or is closed.
 **event 'data'**
 Every processed frame, will be emitted on this event. Event has only one argument: the interleaved audio buffer.
 
-### String AudioInput.Error(Number)
+### String AudioInput.error(Number)
 Converts the error returned in `Number AudioInput.open()` into a string.
 
 ### [String] AudioInput.getDevices()
 Returns the devices available in the system. Useful to change the input device
 when creating an `AudioInput`.
+
+### Boolean AudioInput.loadNativeLibrary(String)
+Tries to load the native library `portaudio` from the path given. If the library is already loaded or cannot be found, it will throw an Error.
+
+### Boolean AudioInput.isNativeLibraryLoaded()
+Returns `true` if the native library is loaded.
 
 ## Webcast
 inherits from stream.Writable

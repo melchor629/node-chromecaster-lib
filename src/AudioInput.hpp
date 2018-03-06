@@ -20,8 +20,9 @@ public:
 
     static const char* errorCodeToString(int);
     static void getInputDevices(std::vector<std::string> &);
-    static void staticInit();
+    static void staticInit(std::string path = "");
     static void staticDeinit();
+    static bool isLoaded();
 
     AudioInput(const Options &opt) : options(opt) {
         selfInit();

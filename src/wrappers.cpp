@@ -45,6 +45,8 @@ namespace demo {
             static NAN_METHOD(isPaused);
             static NAN_METHOD(ErrorToString);
             static NAN_METHOD(GetDevices);
+            static NAN_METHOD(loadPortaudioLibrary);
+            static NAN_METHOD(isNativeLibraryLoaded);
             static void EmitMessage(uv_async_t *w);
             static void Destructor(void*);
             static Nan::Persistent<Function> constructor;
@@ -101,6 +103,10 @@ namespace demo {
         Nan::Set(target, Nan::New("AudioInputError").ToLocalChecked(), Nan::GetFunction(audioInputErrorMethod).ToLocalChecked());
         auto getDevicesMethod = Nan::New<FunctionTemplate>(GetDevices);
         Nan::Set(target, Nan::New("GetDevices").ToLocalChecked(), Nan::GetFunction(getDevicesMethod).ToLocalChecked());
+        auto loadPortaudioLibrary = Nan::New<FunctionTemplate>(AudioInputWrapper::loadPortaudioLibrary);
+        Nan::Set(target, Nan::New("loadPortaudioLibrary").ToLocalChecked(), Nan::GetFunction(loadPortaudioLibrary).ToLocalChecked());
+        auto isNativeLibraryLoaded = Nan::New<FunctionTemplate>(AudioInputWrapper::isNativeLibraryLoaded);
+        Nan::Set(target, Nan::New("isNativeLibraryLoaded").ToLocalChecked(), Nan::GetFunction(isNativeLibraryLoaded).ToLocalChecked());
 
         AudioInput::staticInit();
         node::AtExit(AudioInputWrapper::Destructor, nullptr);
@@ -238,6 +244,22 @@ namespace demo {
     NAN_METHOD(AudioInputWrapper::isPaused) {
         AudioInputWrapper* obj = Nan::ObjectWrap::Unwrap<AudioInputWrapper>(info.Holder());
         info.GetReturnValue().Set(Nan::New(obj->ai->isPaused()));
+    }
+
+    NAN_METHOD(AudioInputWrapper::loadPortaudioLibrary) {
+        Local<Value> arg = info[0];
+        if(arg->IsString()) {
+            Nan::Utf8String argStr(arg);
+            AudioInput::staticInit(*argStr);
+            info.GetReturnValue().Set(Nan::True());
+        } else {
+            Nan::ThrowError("First argument must be a string");
+            info.GetReturnValue().Set(Nan::Undefined());
+        }
+    }
+
+    NAN_METHOD(AudioInputWrapper::isNativeLibraryLoaded) {
+        info.GetReturnValue().Set(Nan::New(AudioInput::isLoaded()));
     }
 
     static void deleteUsingCpp(char* ptr, void*) {

@@ -13,21 +13,10 @@
             },
             "conditions": [
                 ['OS=="linux"', {
-                    "sources": ["src/PortAudioInput.cpp"],
-                    "link_settings": {
-                        "libraries": [
-                            "-lportaudio"
-                        ]
-                    }
+                    "sources": ["src/PortAudioInput.cpp"]
                 }],
                 ['OS=="mac"', {
                     "sources": ["src/PortAudioInput.cpp"],
-                    "link_settings": {
-                        "libraries": [
-                            '-L/usr/local/lib',
-                            "-lportaudio"
-                        ]
-                    },
                     "include_dirs": [
                         "/usr/local/include",
                     ],
@@ -38,16 +27,8 @@
                 }],
                 ['OS=="win"', {
                     "sources": ["src/PortAudioInput.cpp"],
-                    "link_settings": {
-                        "libraries": [
-                            "<(PORTAUDIO_DIR)\\build\\msvc\\x64\\Release\\portaudio_x64.lib"
-                        ]
-                    },
                     "include_dirs": [
                         "<(PORTAUDIO_DIR)\\include"
-                    ],
-                    "defines": [
-                        "UNICODE", "_UNICODE"
                     ]
                 }]
             ]
