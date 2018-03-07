@@ -86,7 +86,7 @@ public:
         return reinterpret_cast<Type>(ptr);
     }
 
-    std::string getLastError() {
+    static std::string getLastError() {
         std::string error;
 #ifdef WIN32
         LPVOID lpMsgBuf;

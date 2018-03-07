@@ -27,7 +27,8 @@ void AudioInput::staticInit(std::string path) {
                 Nan::ThrowError(Pa_GetErrorText(err));
             }
         } else if(!path.empty()) {
-            Nan::ThrowError("Could not load native library");
+            auto errStr = "Could not load native library:" + Library::getLastError();
+            Nan::ThrowError(errStr.c_str());
         }
     } else {
         Nan::ThrowError("Library 'portaudio' has already been loaded");
