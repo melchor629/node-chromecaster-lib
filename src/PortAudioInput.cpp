@@ -27,7 +27,7 @@ void AudioInput::staticInit(std::string path) {
                 Nan::ThrowError(Pa_GetErrorText(err));
             }
         } else if(!path.empty()) {
-            auto errStr = "Could not load native library:" + Library::getLastError();
+            auto errStr = "Could not load native library: " + Library::getLastError() + " - " + path;
             Nan::ThrowError(errStr.c_str());
         }
     } else {
