@@ -26,10 +26,7 @@
                     }
                 }],
                 ['OS=="win"', {
-                    "sources": ["src/PortAudioInput.cpp"],
-                    "include_dirs": [
-                        "<(PORTAUDIO_DIR)\\include"
-                    ]
+                    "sources": ["src/PortAudioInput.cpp"]
                 }]
             ]
         }

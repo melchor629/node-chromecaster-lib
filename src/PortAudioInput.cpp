@@ -1,5 +1,5 @@
 #include "AudioInput.hpp"
-#include <portaudio.h>
+#include "portaudio.h"
 #include <nan.h>
 #include "dl.hpp"
 

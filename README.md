@@ -11,28 +11,27 @@ and may have some bugs or bad performance.
 
 Installation
 ----------------
-This library currently only works on OS X and Linux (Windows is experimental).
+This library currently only works on OS X and Linux and Windows.
 ```
 $ npm install chromecaster-lib
 ```
 
-For electron 1.8, node 8 and 9, it will download a compiled version from Github. Uses the library portaudio, but to compile, doesn't need to have the library itself, only the headers. To execute, the library can be put on an accessible path or can be put anywhere and load it using `AudioInput.loadNativeLibrary(String)`.
+It is not needed to have installed portaudio to compile the library. But you must provide the library either by installing it using the aproppiate package manager (on Linux and macOS) or providing the library manually (on Windows and macOS).
 
-**Mac Users**: You must install portaudio using `brew install portaudio`.
+For electron 1.4 and 1.8, node 8 and 9, it will download a compiled version from Github. Uses the library portaudio. To execute, the library can be put on an accessible path or can be put anywhere and load it using `AudioInput.loadNativeLibrary(String)`.
 
-**Linux Users**: You must install *portaudio19-dev* and *libavahi-compat-libdnssd-dev* packages before installing this one.
+**Mac Users**: You should install portaudio using `brew install portaudio`.
+
+**Linux Users**: You should install *portaudio19-dev* and must install *libavahi-compat-libdnssd-dev* packages before installing this one.
 
 **Windows Users**:
  - You must install Apple "Bonjour SDK for Windows" (look for it on Google), and check for the variable `BONJOUR_SDK_HOME` in your CMD.
  - If you have problems compiling this library (or one of its dependencies), [see this issue](https://github.com/nodejs/node-gyp/issues/972).
- - You can compile [portaudio](http://portaudio.com) for 64bit. **(optionally)** Follow the instructions in `build/msvc/readme.txt` to make it compile. Use release version. To test/use the library, copy the `portaudio_x64.dll` into the root of the project.
- - For compiling, you must pass `--PORTAUDIO_DIR="..."` argument to `npm install ...` or `node-gyp configure ...`. Must point to the root of the portaudio source directory.
+ - You can compile [portaudio](http://portaudio.com) for 64bit or search a `.dll` on the internet. **(optionally)** Follow the instructions in `build/msvc/readme.txt` to make it compile. Use release version. To test/use the library, copy the `portaudio_x64.dll` into the root of the project.
 
 Example
 ------------
-An example is the [CLI I created](https://github.com/melchor629/node-chromecaster-cli) to simply pass audio to the Chromecast via mp3 stream.
-
-Another, quick, example (_using lame encoder_):
+A quick, example (_using lame encoder_):
 
 ```javascript
 const AudioInput = require('chromecaster-lib').AudioInput;
