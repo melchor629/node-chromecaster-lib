@@ -56,6 +56,7 @@ namespace demo {
             uv_async_t message_async;
             uv_mutex_t message_mutex;
             std::queue<Message*> message_queue;
+            Nan::AsyncResource* asyncRes;
     };
 
     NAN_MODULE_INIT(init) {
@@ -69,6 +70,7 @@ namespace demo {
         ai = new AudioInput(opt);
         AudioInputWrapper::instances.push_back(this);
         uv_mutex_init(&message_mutex);
+        asyncRes = new Nan::AsyncResource(Nan::New("AudioInputWrapper:emit").ToLocalChecked());
     }
 
     AudioInputWrapper::~AudioInputWrapper() {
@@ -77,7 +79,9 @@ namespace demo {
         uv_mutex_destroy(&message_mutex);
         delete[] ai->options.devName;
         delete ai;
+        delete asyncRes;
         ai = nullptr;
+        asyncRes = nullptr;
 
         //Delete this reference from `instances`
         auto pos = std::find(instances.begin(), instances.end(), this);
@@ -286,7 +290,7 @@ namespace demo {
                 nullptr
             ).ToLocalChecked();
 
-            Nan::MakeCallback(input->handle(), "emit", 2, args);
+            input->asyncRes->runInAsyncScope(input->handle(), "emit", 2, args);
             input->message_queue.pop();
             delete message;
         }
