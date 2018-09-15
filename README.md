@@ -4,21 +4,18 @@ A library to send your input sound to the Chromecast.
 
 Offers a simple way to get audio from system, discovering Chromecasts and sending audio to it. Audio codec is in your hands.
 
-This version is in (_truly_) beta, so any help is welcome.
-
-For implement audio capturing from Windows, **pull requests are welcome**. Right now, is a really basic form of capturing audio using WASAPI
-and may have some bugs or bad performance.
+This version is in (_kind of_) beta, so any help is welcome.
 
 Installation
 ----------------
-This library currently only works on OS X and Linux and Windows.
+This library currently works on OS X and Linux and Windows.
 ```
 $ npm install chromecaster-lib
 ```
 
 It is not needed to have installed portaudio to compile the library. But you must provide the library either by installing it using the aproppiate package manager (on Linux and macOS) or providing the library manually (on Windows and macOS).
 
-For electron 1.4 and 1.8, node 8 and 9, it will download a compiled version from Github. Uses the library portaudio. To execute, the library can be put on an accessible path or can be put anywhere and load it using `AudioInput.loadNativeLibrary(String)`.
+For electron 1.4 and 1.8, node 8 and 10, it will download a compiled version from Github. Uses the library portaudio. To execute, the library can be put on an accessible path or can be put anywhere and load it using `AudioInput.loadNativeLibrary(String)`.
 
 **Mac Users**: You should install portaudio using `brew install portaudio`.
 
@@ -34,9 +31,7 @@ Example
 A quick, example (_using lame encoder_):
 
 ```javascript
-const AudioInput = require('chromecaster-lib').AudioInput;
-const Webcast = require('chromecaster-lib').Webcast;
-const ChromecastDiscover = require('chromecaster-lib').ChromecastDiscover;
+const { AudioInput, ChromecastDiscover, Webcast } = require('chromecaster-lib');
 const lame = require('lame');
 
 let cd = new ChromecastDiscover();
