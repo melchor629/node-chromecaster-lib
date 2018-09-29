@@ -15,16 +15,15 @@ $ npm install chromecaster-lib
 
 It is not needed to have installed portaudio to compile the library. But you must provide the library either by installing it using the aproppiate package manager (on Linux and macOS) or providing the library manually (on Windows and macOS).
 
-For electron 1.4 and 1.8, node 8 and 10, it will download a compiled version from Github. Uses the library portaudio. To execute, the library can be put on an accessible path or can be put anywhere and load it using `AudioInput.loadNativeLibrary(String)`.
+For electron 1.4 and 1.8, node 8 and 10, it will download a compiled version from Github. Uses the library portaudio. To execute, the library can be put on an accessible path or can be put anywhere and load it using `AudioInput.loadNativeLibrary(path: string)`.
 
-**Mac Users**: You should install portaudio using `brew install portaudio`.
+**Mac Users**: You should install portaudio using `brew install portaudio` if you have troubles.
 
-**Linux Users**: You should install *portaudio19-dev* and must install *libavahi-compat-libdnssd-dev* packages before installing this one.
+**Linux Users**: You should install `portaudio19-dev` (or equivalent) package before installing this one.
 
 **Windows Users**:
- - You must install Apple "Bonjour SDK for Windows" (look for it on Google), and check for the variable `BONJOUR_SDK_HOME` in your CMD.
  - If you have problems compiling this library (or one of its dependencies), [see this issue](https://github.com/nodejs/node-gyp/issues/972).
- - You can compile [portaudio](http://portaudio.com) for 64bit or search a `.dll` on the internet. **(optionally)** Follow the instructions in `build/msvc/readme.txt` to make it compile. Use release version. To test/use the library, copy the `portaudio_x64.dll` into the root of the project.
+ - You can compile [portaudio](http://portaudio.com) for 64bit or search a `.dll` on the internet. **(optionally)** Follow the instructions in `build/msvc/readme.txt` for compiling. Use release version. To test/use the library, copy the `portaudio_x64.dll` into the root of the project.
 
 Example
 ------------
@@ -34,11 +33,11 @@ A quick, example (_using lame encoder_):
 const { AudioInput, ChromecastDiscover, Webcast } = require('chromecaster-lib');
 const lame = require('lame');
 
-let cd = new ChromecastDiscover();
-cd.on('deviceUp', function(name) {
+const cd = new ChromecastDiscover();
+cd.on('device', function(ca) {
     cd.stop();
-    let client = cd.createClient(name);
-    let encoder = new lame.Encoder({
+    const client = cd.createClient(ca);
+    const encoder = new lame.Encoder({
         channels: 2,
         bitDepth: 16,
         sampleRate: 44100,
@@ -46,9 +45,10 @@ cd.on('deviceUp', function(name) {
         outSampleRate: 44100,
         mode: lame.JOINTSTEREO
     });
-    let audioInput = new AudioInput();
-    let webcast = new Webcast({ port: 8080 });
+    const audioInput = new AudioInput();
+    const webcast = new Webcast({ port: 8080 });
 
+    //Sometimes, pipe does not work well with the first one
     audioInput.on('data', encoder.write.bind(encoder));
     encoder.on('data', webcast.write.bind(webcast));
 
@@ -93,26 +93,26 @@ Closes the Input Stream, in case it was opened.
 **pause()**
 (Un)Pauses the Input Stream.
 
-**Boolean isOpen()**
+**isOpen(): boolean**
 Returns `true` if the stream is open, `false` otherwise.
 
-**Boolean isPaused()**
+**isPaused(): boolean**
 Returns `true` if the stream is open and paused, or is closed.
 
 **event 'data'**
 Every processed frame, will be emitted on this event. Event has only one argument: the interleaved audio buffer.
 
-### String AudioInput.error(Number)
+### AudioInput.error(code: number): string
 Converts the error returned in `Number AudioInput.open()` into a string.
 
-### [String] AudioInput.getDevices()
+### AudioInput.getDevices(): string[]
 Returns the devices available in the system. Useful to change the input device
 when creating an `AudioInput`.
 
-### Boolean AudioInput.loadNativeLibrary(String)
+### AudioInput.loadNativeLibrary(path: string): boolean
 Tries to load the native library `portaudio` from the path given. If the library is already loaded or cannot be found, it will throw an Error.
 
-### Boolean AudioInput.isNativeLibraryLoaded()
+### AudioInput.isNativeLibraryLoaded(): boolean
 Returns `true` if the native library is loaded.
 
 ## Webcast
@@ -127,16 +127,16 @@ Creates a web server to send the input audio to the Chromecast (_or something el
 **stop()**
 Closes the server
 
-**write(buffer [, encoding, cbk])**
+**write(buffer: Buffer | string, encoding?: string, cbk?: () => void)**
 Writes some bytes to the clients that are listening. Encoding is usually omitted.
 
-**get localIp**
+**localIp: string**
 Obtains the ip of the machine in the local network
 
-**get contentType**
+**contentType: string**
 Obtains the contentType of the input stream, that is, the stream that will output to the server.
 
-**get port**
+**port: number**
 Gets the port the server is listening on.
 
 **event 'connect'**
@@ -144,7 +144,6 @@ When some client is connected to the local web server. The event passes three ar
 
  - id: _some kind of id for the client connected_ the position on the internal clients array
  - req: _req object from express.js_
- - res: _res object from express.js_
 
 **event 'disconnect'**
 When a client closes the connexion, this event is emitted passing the before mentioned _id_.
@@ -161,23 +160,20 @@ Starts searching for Chromecasts.
 **stop()**
 Stops searching Chromecasts.
 
-**String getDeviceAddress(name)**
+**getDeviceAddress(name: string): string | null**
 Gets the IP address of the device named.
 
-**String getDeviceNameForNumber(number)**
+**getDeviceNameForNumber(pos: number): string**
 Gets the device number for the nth device that was found. `number` goes from 0 to devicesFound - 1.
 
-**forEachClient(cbk)**
+**forEachClient(cbk: (devName: string) => void)**
 Does a forEach on every device found passing its name to the callback.
 
-**ChromecastClient createClient(name)**
+**createClient(nameOrDevice: string | ChromecastDeviceInfo): ChromecastClient**
 Creates a ChromecastDevice object for the named device.
 
-**event 'deviceUp'**
+**event 'device'**
 Event emitted when a device has been found. Argument is the name of the device.
-
-**event 'deviceDown'**
-Event emitted when a device has been disconnected. Argument is the name of the device.
 
 ## ChromecastDevice
 inherits from events.EventEmitter
