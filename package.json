@@ -4,7 +4,7 @@
   "description": "Library for casting audio from your OS X/Linux/Windows computer to Chromecast",
   "main": "index.js",
   "scripts": {
-    "build": "prebuild -t 8.11.4 -t 10.10.0 && prebuild -t 1.8.2 -r electron",
+    "build": "prebuild -t 8.11.4 -t 10.10.0 && prebuild -t 2.0.10 -r electron",
     "install": "prebuild-install || node-gyp rebuild"
   },
   "author": "melchor9000",

@@ -15,7 +15,7 @@ $ npm install chromecaster-lib
 
 It is not needed to have installed portaudio to compile the library. But you must provide the library either by installing it using the aproppiate package manager (on Linux and macOS) or providing the library manually (on Windows and macOS).
 
-For electron 1.4 and 1.8, node 8 and 10, it will download a compiled version from Github. Uses the library portaudio. To execute, the library can be put on an accessible path or can be put anywhere and load it using `AudioInput.loadNativeLibrary(path: string)`.
+For electron 2.0.10 and 3.0.2, node 8 and 10, it will download a compiled version from Github. Uses the library portaudio. To execute, the library can be put on an accessible path or can be put anywhere and load it using `AudioInput.loadNativeLibrary(path: string)`.
 
 **Mac Users**: You should install portaudio using `brew install portaudio` if you have troubles.
 
