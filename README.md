@@ -140,13 +140,16 @@ Obtains the contentType of the input stream, that is, the stream that will outpu
 Gets the port the server is listening on.
 
 **event 'connect'**
-When some client is connected to the local web server. The event passes three arguments:
+When some client is connected to the local web server. The event passes (as object) these attributes:
 
  - id: _some kind of id for the client connected_ the position on the internal clients array
- - req: _req object from express.js_
+ - address: _the address of the device's endpoint_
+ - port: _the port of the device's endpoint_
+ - family: _IPv6 or IPv4_ (is a number, see node's socket documentation)
+ - headers: _object with the headers of the request_
 
 **event 'disconnect'**
-When a client closes the connexion, this event is emitted passing the before mentioned _id_.
+When a client closes the connexion, this event is emitted passing the same object as in `connect` event.
 
 ## ChromecastDiscover
 inherits from events.EventEmitter
