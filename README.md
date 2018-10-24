@@ -24,6 +24,8 @@ For electron 2.0.10 and 3.0.2, node 8 and 10, it will download a compiled versio
 **Windows Users**:
  - If you have problems compiling this library (or one of its dependencies), [see this issue](https://github.com/nodejs/node-gyp/issues/972).
  - You can compile [portaudio](http://portaudio.com) for 64bit or search a `.dll` on the internet. **(optionally)** Follow the instructions in `build/msvc/readme.txt` for compiling. Use release version. To test/use the library, copy the `portaudio_x64.dll` into the root of the project.
+ 
+**Compiling note**: If you have any troubles for compiling, you can see these [requirements](https://github.com/nodejs/node-gyp#installation) for compiling in node. Really recommended for __Windows__ users.
 
 Example
 ------------
