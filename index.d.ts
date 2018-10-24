@@ -33,6 +33,14 @@ declare class ChromecastDevice {
     public close();
 }
 
+declare interface WebcastEvent {
+    id: number;
+    address?: string;
+    port?: number;
+    family?: string;
+    headers: { [index: string]: string };
+}
+
 declare module "chromecaster-lib" {
 
     export class AudioInput extends Event.EventEmitter {
@@ -59,7 +67,7 @@ declare module "chromecaster-lib" {
         public getDeviceNameForNumber(num: number): ChromecastDeviceInfo | null;
         public forEachClient(doSomething: (dev: ChromecastDeviceInfo) => void): void;
         public createClient(name: string | ChromecastDeviceInfo): ChromecastDevice;
-    
+
         public on(eventName: 'device', listener: (dev: ChromecastDeviceInfo) => void);
     }
 
@@ -69,9 +77,9 @@ declare module "chromecaster-lib" {
         public readonly port: number;
         constructor(opts: Stream.WritableOptions & { port?: number; contentType?: string; });
         public stop(): void;
-    
-        public on(event: 'connect', listener: (id: number, req: any) => void);
-        public on(event: 'disconnect', listener: () => void);
+
+        public on(event: 'connect', listener: (data: WebcastEvent) => void);
+        public on(event: 'disconnect', listener: (data: WebcastEvent) => void);
     }
 
 }
