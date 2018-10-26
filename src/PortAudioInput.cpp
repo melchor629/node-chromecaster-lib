@@ -61,11 +61,12 @@ void AudioInput::getInputDevices(std::vector<std::string> &list) {
     for(int i = 0; i < numDevices; i++) {
         const PaDeviceInfo* device = Pa_GetDeviceInfo(i);
 #ifdef _WIN32
-        if(device->maxInputChannels > 0 || PaWasapi_IsLoopback(i)) {
+        const PaHostApiInfo* hostApi = Pa_GetHostApiInfo(device->hostApi);
+        if(device->maxInputChannels > 0 || (!strcmp("Windows WASAPI", hostApi->name) && PaWasapi_IsLoopback(i))) {
 #else
         if(device->maxInputChannels > 0) {
-#endif
             const PaHostApiInfo* hostApi = Pa_GetHostApiInfo(device->hostApi);
+#endif
             list.push_back(std::string("[") + hostApi->name + "] " + device->name);
         }
     }
