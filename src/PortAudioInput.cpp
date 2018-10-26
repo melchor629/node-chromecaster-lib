@@ -3,6 +3,10 @@
 #include <nan.h>
 #include "dl.hpp"
 
+#ifdef _WIN32
+extern "C" int PaWasapi_IsLoopback(PaDeviceIndex deviceId);
+#endif
+
 struct private_data {
     PaStream* stream = nullptr;
     bool isPaused = false;
@@ -56,7 +60,11 @@ void AudioInput::getInputDevices(std::vector<std::string> &list) {
 
     for(int i = 0; i < numDevices; i++) {
         const PaDeviceInfo* device = Pa_GetDeviceInfo(i);
+#ifdef _WIN32
+        if(device->maxInputChannels > 0 || PaWasapi_IsLoopback(i)) {
+#else
         if(device->maxInputChannels > 0) {
+#endif
             const PaHostApiInfo* hostApi = Pa_GetHostApiInfo(device->hostApi);
             list.push_back(std::string("[") + hostApi->name + "] " + device->name);
         }
@@ -239,49 +247,49 @@ static void unloadLibrary() {
 }
 
 extern "C" PaError Pa_Initialize(void) {
-    PaError(*func)(void) = nullptr;
+    static PaError(*func)(void) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_Initialize");
     return func();
 }
 
 extern "C" PaError Pa_Terminate(void) {
-    PaError(*func)(void) = nullptr;
+    static PaError(*func)(void) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_Terminate");
     return func();
 }
 
 extern "C" const char* Pa_GetErrorText(PaError err) {
-    const char*(*func)(PaError) = nullptr;
+    static const char*(*func)(PaError) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_GetErrorText");
     return func(err);
 }
 
 extern "C" PaError Pa_GetDeviceCount(void) {
-    PaError(*func)(void) = nullptr;
+    static PaError(*func)(void) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_GetDeviceCount");
     return func();
 }
 
 extern "C" const PaDeviceInfo* Pa_GetDeviceInfo(PaDeviceIndex index) {
-    const PaDeviceInfo*(*func)(PaDeviceIndex) = nullptr;
+    static const PaDeviceInfo*(*func)(PaDeviceIndex) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_GetDeviceInfo");
     return func(index);
 }
 
 extern "C" const PaHostApiInfo* Pa_GetHostApiInfo(PaHostApiIndex index) {
-    const PaHostApiInfo*(*func)(PaHostApiIndex) = nullptr;
+    static const PaHostApiInfo*(*func)(PaHostApiIndex) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_GetHostApiInfo");
     return func(index);
 }
 
 extern "C" PaDeviceIndex Pa_GetDefaultInputDevice(void) {
-    PaDeviceIndex(*func)(void) = nullptr;
+    static PaDeviceIndex(*func)(void) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_GetDefaultInputDevice");
     return func();
 }
 
 extern "C" PaError Pa_IsFormatSupported(const PaStreamParameters* in, const PaStreamParameters* out, double sampleRate) {
-    PaError(*func)(const PaStreamParameters*, const PaStreamParameters*, double) = nullptr;
+    static PaError(*func)(const PaStreamParameters*, const PaStreamParameters*, double) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_IsFormatSupported");
     return func(in, out, sampleRate);
 }
@@ -294,6 +302,7 @@ extern "C" PaError Pa_OpenStream(PaStream** stream,
                        PaStreamFlags flags,
                        PaStreamCallback * cbk,
                        void * userData) {
+    static
     PaError(*func)(PaStream**,
                    const PaStreamParameters *,
                    const PaStreamParameters *,
@@ -307,25 +316,39 @@ extern "C" PaError Pa_OpenStream(PaStream** stream,
 }
 
 extern "C" PaError Pa_StartStream(PaStream* stream) {
-    PaError(*func)(PaStream*) = nullptr;
+    static PaError(*func)(PaStream*) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_StartStream");
     return func(stream);
 }
 
 extern "C" PaError Pa_StopStream(PaStream* stream) {
-    PaError(*func)(PaStream*) = nullptr;
+    static PaError(*func)(PaStream*) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_StopStream");
     return func(stream);
 }
 
 extern "C" PaError Pa_AbortStream(PaStream* stream) {
-    PaError(*func)(PaStream*) = nullptr;
+    static PaError(*func)(PaStream*) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_AbortStream");
     return func(stream);
 }
 
 extern "C" PaError Pa_CloseStream(PaStream* stream) {
-    PaError(*func)(PaStream*) = nullptr;
+    static PaError(*func)(PaStream*) = nullptr;
     if(func == nullptr) func = portaudio->getSymbolAddress<decltype(func)>("Pa_CloseStream");
     return func(stream);
+}
+
+extern "C" int PaWasapi_IsLoopback(PaDeviceIndex deviceId) {
+    //Avoid crashes when portaudio dll has not the Audacity patch
+    static bool loaded = false;
+    static int(*func)(PaDeviceIndex) = nullptr;
+    if(!loaded) {
+        func = portaudio->getSymbolAddress<decltype(func)>("PaWasapi_IsLoopback");
+        loaded = true;
+    }
+    if(loaded && func != nullptr) {
+        return func(deviceId);
+    }
+    return false; //Return false by default (it is ok)
 }

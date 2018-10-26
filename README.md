@@ -24,6 +24,7 @@ For electron 2.0.10 and 3.0.2, node 8 and 10, it will download a compiled versio
 **Windows Users**:
  - If you have problems compiling this library (or one of its dependencies), [see this issue](https://github.com/nodejs/node-gyp/issues/972).
  - You can compile [portaudio](http://portaudio.com) for 64bit or search a `.dll` on the internet. **(optionally)** Follow the instructions in `build/msvc/readme.txt` for compiling. Use release version. To test/use the library, copy the `portaudio_x64.dll` into the root of the project.
+ - Before compiling `portaudio`, if you want to enable loopback devices on `wasapi` audio library, you should apply the Audacity patch (updated and available in this repository).
 
 **Compiling note**: If you have any troubles for compiling, you can see these [requirements](https://github.com/nodejs/node-gyp#installation) for compiling in node. Really recommended for __Windows__ users.
 
@@ -220,3 +221,9 @@ Notifies the Chromecast to stop the stream.
 
 **close()**
 Stops the stream and closes the connexion to the device.
+
+## About the patch
+
+There's available a patch for `portaudio` sources (v19 20161030) that enables loopback devices on Windows under the `wasapi` API. The original patch is available [here](https://github.com/audacity/audacity/blob/master/lib-src/portaudio-v19/wasapi-loopback.patch) (under GPLv2). It is a modification to make it apply under the source code of v19 20161030 version of the library.
+
+It is an **optional** patch, but applying it, will show loopback devices in the list of audio input devices.
